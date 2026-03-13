@@ -9,24 +9,7 @@ function getDateKey(timestamp: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function getWeekKey(timestamp: number): string {
-  const d = new Date(timestamp);
-  const startOfYear = new Date(d.getFullYear(), 0, 1);
-  const days = Math.floor((d.getTime() - startOfYear.getTime()) / 86400000);
-  const week = Math.ceil((days + startOfYear.getDay() + 1) / 7);
-  return `${d.getFullYear()}-W${String(week).padStart(2, "0")}`;
-}
-
-function getWeekRange(weekKey: string): string {
-  const [yearStr, weekStr] = weekKey.split("-W");
-  const year = parseInt(yearStr);
-  const week = parseInt(weekStr);
-  const jan1 = new Date(year, 0, 1);
-  const startDay = new Date(jan1.getTime() + ((week - 1) * 7 - jan1.getDay()) * 86400000);
-  const endDay = new Date(startDay.getTime() + 6 * 86400000);
-  const fmt = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`;
-  return `${fmt(startDay)}-${fmt(endDay)}`;
-}
+const WEEK_DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function formatDuration(totalSec: number): string {
   const h = Math.floor(totalSec / 3600);
@@ -48,30 +31,50 @@ function aggregateSessions(
   sessions: BreakSession[],
   mode: ViewMode,
 ): BarData[] {
-  const groups: Record<string, { durationSec: number; earnings: number }> = {};
+  if (mode === "weekly") {
+    // Build 7 bars for the current week (Mon-Sun), including empty days
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0=Sun
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(today);
+    monday.setHours(0, 0, 0, 0);
+    monday.setDate(today.getDate() + mondayOffset);
 
+    return WEEK_DAY_LABELS.map((label, i) => {
+      const date = new Date(monday);
+      date.setDate(monday.getDate() + i);
+      const dateKey = getDateKey(date.getTime());
+
+      let durationSec = 0;
+      let earnings = 0;
+      for (const s of sessions) {
+        if (getDateKey(s.startTime) === dateKey) {
+          durationSec += Math.round((s.endTime - s.startTime) / 1000);
+          earnings += s.earnings;
+        }
+      }
+      return { key: dateKey, label, durationSec, earnings };
+    });
+  }
+
+  // Daily mode
+  const groups: Record<string, { durationSec: number; earnings: number }> = {};
   for (const s of sessions) {
-    const key = mode === "daily" ? getDateKey(s.startTime) : getWeekKey(s.startTime);
+    const key = getDateKey(s.startTime);
     if (!groups[key]) groups[key] = { durationSec: 0, earnings: 0 };
     groups[key].durationSec += Math.round((s.endTime - s.startTime) / 1000);
     groups[key].earnings += s.earnings;
   }
 
   const sorted = Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
-
   return sorted.map(([key, data]) => {
-    let label: string;
-    if (mode === "daily") {
-      const [, m, d] = key.split("-");
-      label = `${parseInt(m)}/${parseInt(d)}`;
-    } else {
-      label = getWeekRange(key);
-    }
-    return { key, label, ...data };
+    const [, m, d] = key.split("-");
+    return { key, label: `${parseInt(m)}/${parseInt(d)}`, ...data };
   });
 }
 
 const MAX_BARS = 14;
+const BAR_HEIGHT = 80;
 
 export function HistoryChart() {
   const sessions = useAppStore((s) => s.sessions);
@@ -110,33 +113,31 @@ export function HistoryChart() {
         </div>
       </div>
 
-      <div className="flex items-end gap-1" style={{ height: 100 }}>
+      <div className="flex items-end justify-center gap-1.5" style={{ height: BAR_HEIGHT }}>
         {bars.map((bar) => {
-          const height = Math.max((bar.durationSec / maxDuration) * 100, 4);
+          const h = Math.max(Math.round((bar.durationSec / maxDuration) * BAR_HEIGHT), 3);
           return (
-            <div
-              key={bar.key}
-              className="flex-1 flex flex-col items-center gap-1 group relative"
-            >
-              <div className="absolute bottom-full mb-1 hidden group-hover:block z-10">
+            <div key={bar.key} className="group relative" style={{ width: 18 }}>
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10">
                 <div className="bg-foreground text-background text-[10px] rounded px-1.5 py-0.5 whitespace-nowrap">
                   {formatDuration(bar.durationSec)} &middot; {formatCurrency(bar.earnings)}
                 </div>
               </div>
               <div
-                className="w-full rounded-sm bg-emerald-400/80 dark:bg-emerald-500/60 transition-all"
-                style={{ height: `${height}%` }}
+                className="w-full rounded-sm bg-emerald-400/80 dark:bg-emerald-500/60"
+                style={{ height: h }}
               />
             </div>
           );
         })}
       </div>
 
-      <div className="flex gap-1 mt-1">
+      <div className="flex justify-center gap-1.5 mt-1">
         {bars.map((bar) => (
           <div
             key={bar.key}
-            className="flex-1 text-center text-[9px] text-muted-foreground truncate"
+            className="text-center text-[9px] text-muted-foreground truncate"
+            style={{ width: 18 }}
           >
             {bar.label}
           </div>
