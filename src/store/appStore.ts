@@ -34,6 +34,10 @@ export interface AppState {
   schedule: WorkSchedule;
   setSchedule: (schedule: WorkSchedule) => void;
 
+  clockedInAt: number | null; // Unix timestamp ms when clocked in, null if not
+  clockIn: () => void;
+  clockOut: () => void;
+
   isOnBreak: boolean;
   currentBreakStart: number | null;
   currentEarnings: number;
@@ -70,11 +74,18 @@ export function isWithinWorkSchedule(schedule: WorkSchedule): boolean {
   return schedule.workDays.includes(day) && hour >= schedule.startHour && hour < schedule.endHour;
 }
 
+/** Returns true if the user is currently working: clocked in, or within schedule if not clocked in. */
+export function isCurrentlyWorking(clockedInAt: number | null, schedule: WorkSchedule): boolean {
+  if (clockedInAt !== null) return true;
+  return isWithinWorkSchedule(schedule);
+}
+
 const STORE_FILE = "moyu-data.json";
 
 export const useAppStore = create<AppState>((set, get) => ({
   salary: { amount: 0, period: "annual" },
   schedule: DEFAULT_SCHEDULE,
+  clockedInAt: null,
   isOnBreak: false,
   currentBreakStart: null,
   currentEarnings: 0,
@@ -87,6 +98,16 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setSchedule: (schedule) => {
     set({ schedule });
+    get().saveToDisk();
+  },
+
+  clockIn: () => {
+    set({ clockedInAt: Date.now() });
+    get().saveToDisk();
+  },
+
+  clockOut: () => {
+    set({ clockedInAt: null });
     get().saveToDisk();
   },
 
@@ -136,10 +157,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       const salary = await store.get<SalaryConfig>("salary");
       const sessions = await store.get<BreakSession[]>("sessions");
       const schedule = await store.get<WorkSchedule>("schedule");
+      const clockedInAt = await store.get<number | null>("clockedInAt");
       set({
         salary: salary ?? { amount: 0, period: "annual" },
         sessions: sessions ?? [],
         schedule: schedule ?? DEFAULT_SCHEDULE,
+        clockedInAt: clockedInAt ?? null,
       });
     } catch (e) {
       console.error("Failed to load store:", e);
@@ -153,6 +176,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       await store.set("salary", state.salary);
       await store.set("sessions", state.sessions);
       await store.set("schedule", state.schedule);
+      await store.set("clockedInAt", state.clockedInAt);
       await store.save();
     } catch (e) {
       console.error("Failed to save store:", e);
