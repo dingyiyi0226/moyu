@@ -41,15 +41,15 @@ export function WorkingView() {
   const sessions = useAppStore((s) => s.sessions);
   const setBreakStarted = useAppStore((s) => s.setBreakStarted);
   const schedule = useAppStore((s) => s.schedule);
-  const clockedInAt = useAppStore((s) => s.clockedInAt);
-  const clockedOutAt = useAppStore((s) => s.clockedOutAt);
+  const workIntervals = useAppStore((s) => s.workIntervals);
   const clockIn = useAppStore((s) => s.clockIn);
   const clockOut = useAppStore((s) => s.clockOut);
   const addSession = useAppStore((s) => s.addSession);
   const salary = useAppStore((s) => s.salary);
   const { formatCurrency } = useSalaryCalc();
 
-  const working = isCurrentlyWorking(clockedInAt, clockedOutAt, schedule);
+  const working = isCurrentlyWorking(workIntervals, schedule);
+  const isClocked = workIntervals.length > 0 && workIntervals[workIntervals.length - 1].end === null;
 
   const [showPicker, setShowPicker] = useState<"in" | "out" | null>(null);
   const [showBreakPicker, setShowBreakPicker] = useState(false);
@@ -107,7 +107,7 @@ export function WorkingView() {
           </span>
         </div>
         <div className="flex items-center gap-1.5">
-          {clockedInAt && !clockedOutAt ? (
+          {isClocked ? (
             <button
               onClick={() => clockOut()}
               {...clockOutHover}
@@ -116,7 +116,7 @@ export function WorkingView() {
               <LogOut className="size-3" />
               Clock Out
             </button>
-          ) : !clockedInAt ? (
+          ) : (
             <button
               onClick={() => clockIn()}
               {...clockInHover}
@@ -125,7 +125,7 @@ export function WorkingView() {
               <LogIn className="size-3" />
               Clock In
             </button>
-          ) : null}
+          )}
           {working && (
             <button
               onClick={() => setBreakStarted(Date.now())}

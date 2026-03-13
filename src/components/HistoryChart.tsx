@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useAppStore, type BreakSession } from "@/store/appStore";
+import { useAppStore, type BreakSession, type WorkInterval } from "@/store/appStore";
 import { useSalaryCalc } from "@/hooks/useSalaryCalc";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -37,6 +37,89 @@ function formatDateLabel(dayOffset: number): string {
   const d = getOffsetDate(dayOffset);
   return d.toLocaleDateString([], { month: "short", day: "numeric" });
 }
+
+// ── Timeline construction ──────────────────────────────────────────────
+
+interface TimeRange {
+  startH: number; // fractional hour (e.g. 9.5 = 09:30)
+  endH: number;
+}
+
+interface DayTimeline {
+  axisStart: number; // schedule start hour
+  axisEnd: number;   // schedule end hour
+  workBands: TimeRange[];
+  breakBands: (TimeRange & { id: string })[];
+}
+
+function toFractionalHour(timestamp: number): number {
+  const d = new Date(timestamp);
+  return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
+}
+
+/** Clip [start, end] to [rangeStart, rangeEnd]. Returns null if no overlap. */
+function clipRange(
+  start: number,
+  end: number,
+  rangeStart: number,
+  rangeEnd: number,
+): { start: number; end: number } | null {
+  const s = Math.max(start, rangeStart);
+  const e = Math.min(end, rangeEnd);
+  return s < e ? { start: s, end: e } : null;
+}
+
+/**
+ * Build the timeline for a single day.
+ *
+ * Priority: clock in/out > breaks > schedule.
+ * - Work bands = work intervals clipped to schedule range
+ * - Break bands = break sessions clipped to the intersection of work bands AND schedule range
+ *
+ * @param schedStart  scheduled start hour (e.g. 9)
+ * @param schedEnd    scheduled end hour (e.g. 18)
+ * @param workIntervals  clock in/out intervals for this day (timestamps)
+ * @param breakSessions  break sessions for this day (timestamps)
+ * @param nowH  current fractional hour — used to cap open (clocked-in) intervals
+ */
+export function buildDayTimeline(
+  schedStart: number,
+  schedEnd: number,
+  workIntervals: WorkInterval[],
+  breakSessions: BreakSession[],
+  nowH?: number,
+): DayTimeline {
+  // 1. Convert work intervals to fractional hours, clip to schedule range
+  const workBands: TimeRange[] = [];
+  for (const iv of workIntervals) {
+    const startH = toFractionalHour(iv.start);
+    const endH = iv.end != null
+      ? toFractionalHour(iv.end)
+      : (nowH != null ? Math.min(nowH, schedEnd) : schedEnd);
+    const clipped = clipRange(startH, endH, schedStart, schedEnd);
+    if (clipped) {
+      workBands.push({ startH: clipped.start, endH: clipped.end });
+    }
+  }
+
+  // 2. Convert breaks to fractional hours, clip to work bands
+  //    A break only counts where it intersects a work band.
+  const breakBands: (TimeRange & { id: string })[] = [];
+  for (const brk of breakSessions) {
+    const bStartH = toFractionalHour(brk.startTime);
+    const bEndH = toFractionalHour(brk.endTime);
+    for (const work of workBands) {
+      const clipped = clipRange(bStartH, bEndH, work.startH, work.endH);
+      if (clipped) {
+        breakBands.push({ startH: clipped.start, endH: clipped.end, id: brk.id });
+      }
+    }
+  }
+
+  return { axisStart: schedStart, axisEnd: schedEnd, workBands, breakBands };
+}
+
+// ── Weekly aggregation ─────────────────────────────────────────────────
 
 interface BarData {
   key: string;
@@ -86,6 +169,39 @@ function formatWeekLabel(weekOffset: number): string {
   return `${fmt(sunday)} – ${fmt(saturday)}`;
 }
 
+// ── Helpers for filtering store data to a specific day ──────────────────
+
+/** Filter work intervals that overlap with a given date (midnight to midnight). */
+function getWorkIntervalsForDate(
+  allIntervals: WorkInterval[],
+  date: Date,
+): WorkInterval[] {
+  const dayStart = new Date(date);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(date);
+  dayEnd.setHours(23, 59, 59, 999);
+  const dsMs = dayStart.getTime();
+  const deMs = dayEnd.getTime();
+
+  return allIntervals.filter((iv) => {
+    const end = iv.end ?? Date.now();
+    // interval overlaps with this day
+    return iv.start <= deMs && end >= dsMs;
+  });
+}
+
+function getBreakSessionsForDate(
+  allSessions: BreakSession[],
+  date: Date,
+): BreakSession[] {
+  const key = getDateKey(date.getTime());
+  return allSessions
+    .filter((s) => getDateKey(s.startTime) === key)
+    .sort((a, b) => a.startTime - b.startTime);
+}
+
+// ── Shared UI constants ────────────────────────────────────────────────
+
 const navBtnClass =
   "p-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-30 disabled:pointer-events-none";
 
@@ -100,46 +216,28 @@ function toPercent(hour: number, schedStart: number, schedEnd: number): number {
 
 function DailyChart({ sessions }: { sessions: BreakSession[] }) {
   const schedule = useAppStore((s) => s.schedule);
-  const clockedInAt = useAppStore((s) => s.clockedInAt);
-  const clockedOutAt = useAppStore((s) => s.clockedOutAt);
+  const allWorkIntervals = useAppStore((s) => s.workIntervals);
   const [dayOffset, setDayOffset] = useState(0);
 
   const targetDate = getOffsetDate(dayOffset);
   const isToday = dayOffset === 0;
 
-  const daySessions = useMemo(() => {
-    const key = getDateKey(targetDate.getTime());
-    return sessions
-      .filter((s) => getDateKey(s.startTime) === key)
-      .sort((a, b) => a.startTime - b.startTime);
-  }, [sessions, targetDate]);
-
-  const schedStart = schedule.startHour;
-  const schedEnd = schedule.endHour;
-
-  // Clock-in/out: only use real values for today
-  const clockInH =
-    isToday && clockedInAt
-      ? new Date(clockedInAt).getHours() +
-        new Date(clockedInAt).getMinutes() / 60
-      : null;
-  const clockOutH =
-    isToday && clockedOutAt
-      ? new Date(clockedOutAt).getHours() +
-        new Date(clockedOutAt).getMinutes() / 60
-      : null;
-
   const now = new Date();
-  const nowH = now.getHours() + now.getMinutes() / 60;
+  const nowH = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
 
-  const activeStart = clockInH ?? (daySessions.length > 0 ? schedStart : null);
-  const activeEnd = isToday
-    ? clockOutH ?? Math.min(nowH, schedEnd)
-    : daySessions.length > 0
-      ? schedEnd
-      : null;
+  const timeline = useMemo(() => {
+    const dayIntervals = getWorkIntervalsForDate(allWorkIntervals, targetDate);
+    const daySessions = getBreakSessionsForDate(sessions, targetDate);
+    return buildDayTimeline(
+      schedule.startHour,
+      schedule.endHour,
+      dayIntervals,
+      daySessions,
+      isToday ? nowH : undefined,
+    );
+  }, [allWorkIntervals, sessions, targetDate, schedule, isToday, nowH]);
 
-  const pct = (h: number) => toPercent(h, schedStart, schedEnd);
+  const pct = (h: number) => toPercent(h, timeline.axisStart, timeline.axisEnd);
 
   return (
     <div className="px-4 py-3">
@@ -164,39 +262,39 @@ function DailyChart({ sessions }: { sessions: BreakSession[] }) {
 
       {/* Timeline bar */}
       <div className="relative h-5 rounded-full bg-muted/80 overflow-hidden">
-        {/* Layer 1: Working region (clock-in to clock-out/now) */}
-        {activeStart !== null && activeEnd !== null && activeEnd > activeStart && (
+        {/* Layer 1: Working region bands */}
+        {timeline.workBands.map((band, i) => (
           <div
+            key={i}
             className="absolute inset-y-0 bg-blue-400/50 dark:bg-blue-500/30"
             style={{
-              left: `${pct(activeStart)}%`,
-              width: `${pct(activeEnd) - pct(activeStart)}%`,
+              left: `${pct(band.startH)}%`,
+              width: `${pct(band.endH) - pct(band.startH)}%`,
             }}
           />
-        )}
+        ))}
 
-        {/* Layer 2: Break segments on top */}
-        {daySessions.map((session) => {
-          const sStart = new Date(session.startTime);
-          const sEnd = new Date(session.endTime);
-          const bStartH = sStart.getHours() + sStart.getMinutes() / 60;
-          const bEndH = sEnd.getHours() + sEnd.getMinutes() / 60;
-
-          const left = pct(bStartH);
-          const width = pct(bEndH) - left;
+        {/* Layer 2: Break segments (clipped to work bands) */}
+        {timeline.breakBands.map((band) => {
+          const left = pct(band.startH);
+          const width = pct(band.endH) - left;
           if (width <= 0) return null;
+
+          const fmtTime = (h: number) => {
+            const hours = Math.floor(h);
+            const mins = Math.round((h - hours) * 60);
+            return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+          };
 
           return (
             <div
-              key={session.id}
+              key={band.id}
               className="group absolute inset-y-0 bg-emerald-400/80 dark:bg-emerald-500/60"
               style={{ left: `${left}%`, width: `${width}%` }}
             >
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10">
                 <div className="bg-foreground text-background text-[10px] rounded px-1.5 py-0.5 whitespace-nowrap">
-                  {sStart.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}
-                  –
-                  {sEnd.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}
+                  {fmtTime(band.startH)}–{fmtTime(band.endH)}
                 </div>
               </div>
             </div>
@@ -204,7 +302,7 @@ function DailyChart({ sessions }: { sessions: BreakSession[] }) {
         })}
 
         {/* "Now" marker (today only) */}
-        {isToday && nowH >= schedStart && nowH <= schedEnd && (
+        {isToday && nowH >= timeline.axisStart && nowH <= timeline.axisEnd && (
           <div
             className="absolute top-0 bottom-0 w-0.5 bg-foreground/70"
             style={{ left: `${pct(nowH)}%` }}
@@ -215,12 +313,12 @@ function DailyChart({ sessions }: { sessions: BreakSession[] }) {
       {/* Time labels below the bar */}
       <div className="relative h-4 mt-0.5">
         <span className="absolute left-0 text-[9px] text-muted-foreground">
-          {formatHour(schedStart)}
+          {formatHour(timeline.axisStart)}
         </span>
         <span className="absolute right-0 text-[9px] text-muted-foreground">
-          {formatHour(schedEnd)}
+          {formatHour(timeline.axisEnd)}
         </span>
-        {isToday && nowH >= schedStart && nowH <= schedEnd && (
+        {isToday && nowH >= timeline.axisStart && nowH <= timeline.axisEnd && (
           <span
             className="absolute text-[9px] font-medium text-foreground/70 -translate-x-1/2"
             style={{ left: `${pct(nowH)}%` }}
@@ -241,13 +339,14 @@ function DailyChart({ sessions }: { sessions: BreakSession[] }) {
           <span className="text-[9px] text-muted-foreground">Break</span>
         </div>
         <span className="text-[9px] text-muted-foreground">
-          {daySessions.length} break{daySessions.length !== 1 ? "s" : ""}
-          {daySessions.length > 0 &&
+          {timeline.breakBands.length} break{timeline.breakBands.length !== 1 ? "s" : ""}
+          {timeline.breakBands.length > 0 &&
             ` · ${formatDuration(
-              daySessions.reduce(
-                (sum, s) =>
-                  sum + Math.round((s.endTime - s.startTime) / 1000),
-                0,
+              Math.round(
+                timeline.breakBands.reduce(
+                  (sum, b) => sum + (b.endH - b.startH) * 3600,
+                  0,
+                ),
               ),
             )}`}
         </span>
