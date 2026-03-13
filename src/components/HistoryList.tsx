@@ -1,39 +1,89 @@
 import { useMemo } from "react";
-import { useAppStore, type BreakSession } from "@/store/appStore";
+import { useAppStore, type BreakSession, type WorkInterval } from "@/store/appStore";
 import { useSalaryCalc } from "@/hooks/useSalaryCalc";
+import { LogIn, LogOut } from "lucide-react";
+
+type TimelineEntry =
+  | { kind: "clock-in"; time: number; id: string }
+  | { kind: "clock-out"; time: number; id: string }
+  | { kind: "break"; session: BreakSession };
+
+function buildTimelineEntries(
+  workIntervals: WorkInterval[],
+  sessions: BreakSession[],
+): TimelineEntry[] {
+  const entries: TimelineEntry[] = [];
+
+  for (const iv of workIntervals) {
+    entries.push({ kind: "clock-in", time: iv.start, id: `ci-${iv.start}` });
+    if (iv.end != null) {
+      entries.push({ kind: "clock-out", time: iv.end, id: `co-${iv.end}` });
+    }
+  }
+
+  for (const s of sessions) {
+    entries.push({ kind: "break", session: s });
+  }
+
+  // Sort newest first
+  entries.sort((a, b) => {
+    const ta = a.kind === "break" ? a.session.startTime : a.time;
+    const tb = b.kind === "break" ? b.session.startTime : b.time;
+    return tb - ta;
+  });
+
+  return entries;
+}
+
+function entryTime(e: TimelineEntry): number {
+  return e.kind === "break" ? e.session.startTime : e.time;
+}
 
 interface DayGroup {
   date: string;
-  sessions: BreakSession[];
-  total: number;
+  entries: TimelineEntry[];
+  breakTotal: number;
 }
 
 export function HistoryList() {
   const sessions = useAppStore((s) => s.sessions);
+  const workIntervals = useAppStore((s) => s.workIntervals);
   const { formatCurrency } = useSalaryCalc();
 
   const groupedByDay = useMemo((): DayGroup[] => {
-    const groups: Record<string, BreakSession[]> = {};
-    const sorted = [...sessions].sort((a, b) => b.startTime - a.startTime);
-    for (const session of sorted) {
-      const dateKey = new Date(session.startTime).toLocaleDateString();
-      if (!groups[dateKey]) groups[dateKey] = [];
-      groups[dateKey].push(session);
-    }
-    return Object.entries(groups).map(([date, sessions]) => ({
-      date,
-      sessions,
-      total: sessions.reduce((sum, s) => sum + s.earnings, 0),
-    }));
-  }, [sessions]);
+    const entries = buildTimelineEntries(workIntervals, sessions);
+    const groups: Record<string, TimelineEntry[]> = {};
 
-  if (sessions.length === 0) {
+    for (const entry of entries) {
+      const dateKey = new Date(entryTime(entry)).toLocaleDateString();
+      if (!groups[dateKey]) groups[dateKey] = [];
+      groups[dateKey].push(entry);
+    }
+
+    return Object.entries(groups).map(([date, entries]) => ({
+      date,
+      entries,
+      breakTotal: entries.reduce(
+        (sum, e) => sum + (e.kind === "break" ? e.session.earnings : 0),
+        0,
+      ),
+    }));
+  }, [sessions, workIntervals]);
+
+  if (sessions.length === 0 && workIntervals.length === 0) {
     return (
       <p className="text-center text-[11px] text-muted-foreground py-5">
         Lock your screen to start tracking breaks.
       </p>
     );
   }
+
+  const fmtTime = (ts: number) =>
+    new Date(ts).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
 
   return (
     <div className="max-h-[320px] overflow-y-auto">
@@ -45,29 +95,54 @@ export function HistoryList() {
               <span className="text-[11px] font-medium text-muted-foreground">
                 {group.date}
               </span>
-              <span className="text-[11px] font-semibold tabular-nums text-emerald-600">
-                {formatCurrency(group.total)}
-              </span>
+              {group.breakTotal > 0 && (
+                <span className="text-[11px] font-semibold tabular-nums text-emerald-600">
+                  {formatCurrency(group.breakTotal)}
+                </span>
+              )}
             </div>
-            {group.sessions.map((session) => {
+            {group.entries.map((entry) => {
+              if (entry.kind === "clock-in") {
+                return (
+                  <div
+                    key={entry.id}
+                    className="flex items-center gap-1.5 py-1 text-[12px] text-blue-600 dark:text-blue-400"
+                  >
+                    <LogIn className="size-3" />
+                    <span>{fmtTime(entry.time)}</span>
+                    <span className="text-muted-foreground">Clock In</span>
+                  </div>
+                );
+              }
+
+              if (entry.kind === "clock-out") {
+                return (
+                  <div
+                    key={entry.id}
+                    className="flex items-center gap-1.5 py-1 text-[12px] text-orange-600 dark:text-orange-400"
+                  >
+                    <LogOut className="size-3" />
+                    <span>{fmtTime(entry.time)}</span>
+                    <span className="text-muted-foreground">Clock Out</span>
+                  </div>
+                );
+              }
+
+              const { session } = entry;
               const totalSec = Math.round(
                 (session.endTime - session.startTime) / 1000,
               );
               const m = Math.floor(totalSec / 60);
               const s = totalSec % 60;
               const duration = m > 0 ? `${m}m ${s}s` : `${s}s`;
-              const time = new Date(session.startTime).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: false,
-              });
+
               return (
                 <div
                   key={session.id}
                   className="flex items-center justify-between py-1 text-[12px]"
                 >
                   <span className="text-muted-foreground">
-                    {time} &middot; {duration}
+                    {fmtTime(session.startTime)} &middot; {duration}
                   </span>
                   <span className="tabular-nums text-foreground/80">
                     {formatCurrency(session.earnings)}
