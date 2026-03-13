@@ -1,11 +1,12 @@
 import { useState } from "react";
 
-interface BreakPickerProps {
+interface RangePickerProps {
+  confirmLabel: string;
   onConfirm: (startH: number, startM: number, endH: number, endM: number) => void;
   onCancel: () => void;
 }
 
-export function BreakPicker({ onConfirm, onCancel }: BreakPickerProps) {
+export function RangePicker({ confirmLabel, onConfirm, onCancel }: RangePickerProps) {
   const now = new Date();
   const [startH, setStartH] = useState(now.getHours());
   const [startM, setStartM] = useState(0);
@@ -59,7 +60,7 @@ export function BreakPicker({ onConfirm, onCancel }: BreakPickerProps) {
           onClick={() => onConfirm(startH, startM, endH, endM)}
           className="h-6 px-2.5 rounded text-[10px] font-medium bg-foreground text-background hover:bg-foreground/90 transition-colors"
         >
-          Add Break
+          {confirmLabel}
         </button>
         <button
           onClick={onCancel}

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useAppStore, isCurrentlyWorking, perSecondRate } from "@/store/appStore";
 import { useSalaryCalc } from "@/hooks/useSalaryCalc";
 import { Play, LogIn, LogOut, Plus } from "lucide-react";
-import { BreakPicker } from "@/components/BreakPicker";
+import { RangePicker } from "@/components/BreakPicker";
 
 function formatDuration(totalSeconds: number): string {
   const h = Math.floor(totalSeconds / 3600);
@@ -33,7 +33,7 @@ export function WorkingView() {
   const working = isCurrentlyWorking(workIntervals, schedule);
   const isClocked = workIntervals.length > 0 && workIntervals[workIntervals.length - 1].end === null;
 
-  const [showBreakPicker, setShowBreakPicker] = useState(false);
+  const [customPicker, setCustomPicker] = useState<"choose" | "break" | "work" | null>(null);
 
   const todayStats = useMemo(() => {
     const today = new Date();
@@ -96,17 +96,35 @@ export function WorkingView() {
             </button>
           )}
           <button
-            onClick={() => setShowBreakPicker((v) => !v)}
+            onClick={() => setCustomPicker((v) => (v ? null : "choose"))}
             className="flex items-center gap-0.5 px-1.5 py-1 rounded-lg text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            title="Add custom break"
+            title="Add custom entry"
           >
             <Plus className="size-3" />
           </button>
         </div>
       </div>
 
-      {showBreakPicker && (
-        <BreakPicker
+      {customPicker === "choose" && (
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setCustomPicker("break")}
+            className="flex-1 h-7 rounded-lg text-[11px] font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60 transition-colors"
+          >
+            Add Break
+          </button>
+          <button
+            onClick={() => setCustomPicker("work")}
+            className="flex-1 h-7 rounded-lg text-[11px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-950/60 transition-colors"
+          >
+            Add Work Time
+          </button>
+        </div>
+      )}
+
+      {customPicker === "break" && (
+        <RangePicker
+          confirmLabel="Add Break"
           onConfirm={(sH, sM, eH, eM) => {
             const startTime = todayAt(sH, sM);
             const endTime = todayAt(eH, eM);
@@ -120,9 +138,21 @@ export function WorkingView() {
                 earnings,
               });
             }
-            setShowBreakPicker(false);
+            setCustomPicker(null);
           }}
-          onCancel={() => setShowBreakPicker(false)}
+          onCancel={() => setCustomPicker(null)}
+        />
+      )}
+
+      {customPicker === "work" && (
+        <RangePicker
+          confirmLabel="Add Work Time"
+          onConfirm={(sH, sM, eH, eM) => {
+            clockIn(todayAt(sH, sM));
+            clockOut(todayAt(eH, eM));
+            setCustomPicker(null);
+          }}
+          onCancel={() => setCustomPicker(null)}
         />
       )}
 
