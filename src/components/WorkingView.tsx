@@ -79,18 +79,6 @@ export function WorkingView() {
     return { earnings, duration, count: todaySessions.length };
   }, [sessions]);
 
-  const monthStats = useMemo(() => {
-    const now = new Date();
-    const monthSessions = sessions.filter((s) => {
-      const d = new Date(s.startTime);
-      return (
-        d.getMonth() === now.getMonth() &&
-        d.getFullYear() === now.getFullYear()
-      );
-    });
-    return monthSessions.reduce((sum, s) => sum + s.earnings, 0);
-  }, [sessions]);
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -187,31 +175,18 @@ export function WorkingView() {
         />
       )}
 
-      <div className="space-y-3">
-        <div className="rounded-xl bg-muted/60 px-4 py-3">
-          <div className="flex items-baseline justify-between">
-            <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-              Today
-            </span>
-            <span className="text-xl font-semibold tabular-nums tracking-tight">
-              {formatCurrency(todayStats.earnings)}
-            </span>
-          </div>
-          <p className="text-[11px] text-muted-foreground mt-0.5">
-            {todayStats.count} break{todayStats.count !== 1 ? "s" : ""} &middot; {formatDuration(todayStats.duration)}
-          </p>
+      <div className="rounded-xl bg-muted/60 px-4 py-3">
+        <div className="flex items-baseline justify-between">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+            Today
+          </span>
+          <span className="text-xl font-semibold tabular-nums tracking-tight">
+            {formatCurrency(todayStats.earnings)}
+          </span>
         </div>
-
-        <div className="rounded-xl bg-muted/60 px-4 py-3">
-          <div className="flex items-baseline justify-between">
-            <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-              This month
-            </span>
-            <span className="text-base font-semibold tabular-nums tracking-tight">
-              {formatCurrency(monthStats)}
-            </span>
-          </div>
-        </div>
+        <p className="text-[11px] text-muted-foreground mt-0.5">
+          {todayStats.count} break{todayStats.count !== 1 ? "s" : ""} &middot; {formatDuration(todayStats.duration)}
+        </p>
       </div>
     </div>
   );

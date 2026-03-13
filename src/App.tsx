@@ -1,18 +1,77 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppStore } from "@/store/appStore";
 import { useSystemEvents } from "@/hooks/useSystemEvents";
 import { BreakView } from "@/components/BreakView";
 import { WorkingView } from "@/components/WorkingView";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { HistoryList } from "@/components/HistoryList";
-import { HistoryChart } from "@/components/HistoryChart";
-import { Settings, ChevronLeft } from "lucide-react";
+import { DailyChart, WeeklyChart } from "@/components/HistoryChart";
+import { useSalaryCalc } from "@/hooks/useSalaryCalc";
+import { Settings, ChevronLeft, Clock, BarChart3 } from "lucide-react";
+
+type Tab = "today" | "summary";
+
+function formatDuration(totalSec: number): string {
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+function MonthlySummary() {
+  const sessions = useAppStore((s) => s.sessions);
+  const { formatCurrency } = useSalaryCalc();
+
+  const stats = useMemo(() => {
+    const now = new Date();
+    const monthSessions = sessions.filter((s) => {
+      const d = new Date(s.startTime);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    });
+    const earnings = monthSessions.reduce((sum, s) => sum + s.earnings, 0);
+    const duration = monthSessions.reduce(
+      (sum, s) => sum + (s.endTime - s.startTime) / 1000,
+      0,
+    );
+    return { earnings, duration: Math.round(duration), count: monthSessions.length };
+  }, [sessions]);
+
+  const monthLabel = new Date().toLocaleDateString([], { month: "long", year: "numeric" });
+
+  return (
+    <div className="px-4 py-3">
+      <div className="rounded-xl bg-muted/60 px-4 py-3">
+        <div className="flex items-baseline justify-between">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+            {monthLabel}
+          </span>
+          <span className="text-xl font-semibold tabular-nums tracking-tight">
+            {formatCurrency(stats.earnings)}
+          </span>
+        </div>
+        <p className="text-[11px] text-muted-foreground mt-0.5">
+          {stats.count} break{stats.count !== 1 ? "s" : ""} &middot; {formatDuration(stats.duration)}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+const tabBtnClass = (active: boolean) =>
+  `flex items-center gap-1 px-3 py-1.5 text-[11px] font-medium transition-colors ${
+    active
+      ? "text-foreground border-b-2 border-foreground"
+      : "text-muted-foreground hover:text-foreground"
+  }`;
 
 function App() {
   const loadFromDisk = useAppStore((s) => s.loadFromDisk);
   const isOnBreak = useAppStore((s) => s.isOnBreak);
   const salary = useAppStore((s) => s.salary);
+  const sessions = useAppStore((s) => s.sessions);
   const [showSettings, setShowSettings] = useState(false);
+  const [tab, setTab] = useState<Tab>("today");
+  const { formatCurrency } = useSalaryCalc();
 
   useSystemEvents();
 
@@ -49,30 +108,61 @@ function App() {
             </button>
           </div>
 
-          <div className="px-4 pb-4">
-            {salary.amount === 0 ? (
-              <div className="text-center py-10">
-                <p className="text-sm text-muted-foreground mb-3">
-                  No salary configured
-                </p>
-                <button
-                  onClick={() => setShowSettings(true)}
-                  className="text-sm font-medium text-foreground hover:text-foreground/70 underline underline-offset-4 transition-colors"
-                >
-                  Set up salary
-                </button>
-              </div>
-            ) : isOnBreak ? (
-              <BreakView />
+          {tab === "today" && (
+            <div className="px-4 pb-4">
+              {salary.amount === 0 ? (
+                <div className="text-center py-10">
+                  <p className="text-sm text-muted-foreground mb-3">
+                    No salary configured
+                  </p>
+                  <button
+                    onClick={() => setShowSettings(true)}
+                    className="text-sm font-medium text-foreground hover:text-foreground/70 underline underline-offset-4 transition-colors"
+                  >
+                    Set up salary
+                  </button>
+                </div>
+              ) : isOnBreak ? (
+                <BreakView />
+              ) : (
+                <WorkingView />
+              )}
+            </div>
+          )}
+
+          <div className="h-px bg-border" />
+
+          {/* Tab content */}
+          <div>
+            {tab === "today" ? (
+              <>
+                <DailyChart sessions={sessions} todayOnly />
+                <div className="h-px bg-border mx-4" />
+                <HistoryList todayOnly />
+              </>
             ) : (
-              <WorkingView />
+              <>
+                <MonthlySummary />
+                <div className="h-px bg-border mx-4" />
+                <WeeklyChart sessions={sessions} formatCurrency={formatCurrency} />
+                <div className="h-px bg-border mx-4" />
+                <HistoryList />
+              </>
             )}
           </div>
 
-          <div className="h-px bg-border mx-4" />
-          <HistoryChart />
-          <div className="h-px bg-border mx-4" />
-          <HistoryList />
+          {/* Tab bar */}
+          <div className="h-px bg-border" />
+          <div className="flex items-center justify-center gap-4 py-1">
+            <button className={tabBtnClass(tab === "today")} onClick={() => setTab("today")}>
+              <Clock className="size-3" />
+              Today
+            </button>
+            <button className={tabBtnClass(tab === "summary")} onClick={() => setTab("summary")}>
+              <BarChart3 className="size-3" />
+              Summary
+            </button>
+          </div>
         </>
       )}
     </div>

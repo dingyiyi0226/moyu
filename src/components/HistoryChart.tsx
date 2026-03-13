@@ -214,13 +214,20 @@ function toPercent(hour: number, schedStart: number, schedEnd: number): number {
   return Math.max(0, Math.min(100, ((hour - schedStart) / total) * 100));
 }
 
-function DailyChart({ sessions }: { sessions: BreakSession[] }) {
+export function DailyChart({
+  sessions,
+  todayOnly = false,
+}: {
+  sessions: BreakSession[];
+  todayOnly?: boolean;
+}) {
   const schedule = useAppStore((s) => s.schedule);
   const allWorkIntervals = useAppStore((s) => s.workIntervals);
   const [dayOffset, setDayOffset] = useState(0);
 
-  const targetDate = getOffsetDate(dayOffset);
-  const isToday = dayOffset === 0;
+  const effectiveOffset = todayOnly ? 0 : dayOffset;
+  const targetDate = getOffsetDate(effectiveOffset);
+  const isToday = effectiveOffset === 0;
 
   const now = new Date();
   const nowH = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
@@ -241,24 +248,30 @@ function DailyChart({ sessions }: { sessions: BreakSession[] }) {
 
   return (
     <div className="px-4 py-3">
-      <div className="flex items-center justify-between mb-3">
-        <button
-          onClick={() => setDayOffset((o) => o - 1)}
-          className={navBtnClass}
-        >
-          <ChevronLeft className="size-3.5" />
-        </button>
-        <span className="text-[11px] font-medium text-muted-foreground">
-          {formatDateLabel(dayOffset)}
-        </span>
-        <button
-          onClick={() => setDayOffset((o) => o + 1)}
-          disabled={dayOffset >= 0}
-          className={navBtnClass}
-        >
-          <ChevronRight className="size-3.5" />
-        </button>
-      </div>
+      {todayOnly ? (
+        <div className="flex items-center justify-center mb-3">
+          <span className="text-[11px] font-medium text-muted-foreground">Today</span>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between mb-3">
+          <button
+            onClick={() => setDayOffset((o) => o - 1)}
+            className={navBtnClass}
+          >
+            <ChevronLeft className="size-3.5" />
+          </button>
+          <span className="text-[11px] font-medium text-muted-foreground">
+            {formatDateLabel(dayOffset)}
+          </span>
+          <button
+            onClick={() => setDayOffset((o) => o + 1)}
+            disabled={dayOffset >= 0}
+            className={navBtnClass}
+          >
+            <ChevronRight className="size-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Timeline bar */}
       <div className="relative h-5 rounded-full bg-muted/80 overflow-hidden">
@@ -355,7 +368,7 @@ function DailyChart({ sessions }: { sessions: BreakSession[] }) {
   );
 }
 
-function WeeklyChart({
+export function WeeklyChart({
   sessions,
   formatCurrency,
 }: {

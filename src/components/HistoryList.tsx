@@ -45,12 +45,29 @@ interface DayGroup {
   breakTotal: number;
 }
 
-export function HistoryList() {
-  const sessions = useAppStore((s) => s.sessions);
-  const workIntervals = useAppStore((s) => s.workIntervals);
+function isSameDay(ts: number, ref: Date): boolean {
+  const d = new Date(ts);
+  return (
+    d.getDate() === ref.getDate() &&
+    d.getMonth() === ref.getMonth() &&
+    d.getFullYear() === ref.getFullYear()
+  );
+}
+
+export function HistoryList({ todayOnly = false }: { todayOnly?: boolean } = {}) {
+  const allSessions = useAppStore((s) => s.sessions);
+  const allWorkIntervals = useAppStore((s) => s.workIntervals);
   const { formatCurrency } = useSalaryCalc();
 
   const groupedByDay = useMemo((): DayGroup[] => {
+    const today = new Date();
+    const sessions = todayOnly
+      ? allSessions.filter((s) => isSameDay(s.startTime, today))
+      : allSessions;
+    const workIntervals = todayOnly
+      ? allWorkIntervals.filter((iv) => isSameDay(iv.start, today))
+      : allWorkIntervals;
+
     const entries = buildTimelineEntries(workIntervals, sessions);
     const groups: Record<string, TimelineEntry[]> = {};
 
@@ -68,9 +85,9 @@ export function HistoryList() {
         0,
       ),
     }));
-  }, [sessions, workIntervals]);
+  }, [allSessions, allWorkIntervals, todayOnly]);
 
-  if (sessions.length === 0 && workIntervals.length === 0) {
+  if (allSessions.length === 0 && allWorkIntervals.length === 0) {
     return (
       <p className="text-center text-[11px] text-muted-foreground py-5">
         Lock your screen to start tracking breaks.
@@ -86,7 +103,7 @@ export function HistoryList() {
     });
 
   return (
-    <div className="max-h-[320px] overflow-y-auto">
+    <div className="max-h-[240px] overflow-y-auto">
       {groupedByDay.map((group, groupIdx) => (
         <div key={group.date}>
           {groupIdx > 0 && <div className="h-px bg-border mx-4" />}
