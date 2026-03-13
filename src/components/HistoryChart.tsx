@@ -91,6 +91,13 @@ const navBtnClass =
 
 const BAR_HEIGHT = 80;
 
+/** Convert fractional hour to % position within the schedule bar */
+function toPercent(hour: number, schedStart: number, schedEnd: number): number {
+  const total = schedEnd - schedStart;
+  if (total <= 0) return 0;
+  return Math.max(0, Math.min(100, ((hour - schedStart) / total) * 100));
+}
+
 function DailyChart({ sessions }: { sessions: BreakSession[] }) {
   const schedule = useAppStore((s) => s.schedule);
   const clockedInAt = useAppStore((s) => s.clockedInAt);
@@ -101,20 +108,34 @@ function DailyChart({ sessions }: { sessions: BreakSession[] }) {
 
   const daySessions = useMemo(() => {
     const key = getDateKey(targetDate.getTime());
-    return sessions.filter((s) => getDateKey(s.startTime) === key);
+    return sessions
+      .filter((s) => getDateKey(s.startTime) === key)
+      .sort((a, b) => a.startTime - b.startTime);
   }, [sessions, targetDate]);
 
-  // Work window: clock-in time only applies to today
-  const startHour =
+  const schedStart = schedule.startHour;
+  const schedEnd = schedule.endHour;
+
+  // Clock-in/out: only use real clock-in for today
+  const clockInH =
     isToday && clockedInAt
       ? new Date(clockedInAt).getHours() +
         new Date(clockedInAt).getMinutes() / 60
-      : schedule.startHour;
-  const endHour = schedule.endHour;
+      : null;
 
-  const totalHours = Math.max(endHour - startHour, 1);
+  // For past days with sessions, infer clock-in from first session and clock-out from last
+  // For today: clock-out = now (still working)
   const now = new Date();
-  const currentHourFrac = now.getHours() + now.getMinutes() / 60;
+  const nowH = now.getHours() + now.getMinutes() / 60;
+
+  const activeStart = clockInH ?? (daySessions.length > 0 ? schedStart : null);
+  const activeEnd = isToday
+    ? Math.min(nowH, schedEnd)
+    : daySessions.length > 0
+      ? schedEnd
+      : null;
+
+  const pct = (h: number) => toPercent(h, schedStart, schedEnd);
 
   return (
     <div className="px-4 py-3">
@@ -137,47 +158,28 @@ function DailyChart({ sessions }: { sessions: BreakSession[] }) {
         </button>
       </div>
 
-      {/* Time labels */}
-      <div className="flex justify-between mb-1">
-        <span className="text-[9px] text-muted-foreground">
-          {formatHour(Math.floor(startHour))}
-        </span>
-        <span className="text-[9px] text-muted-foreground">
-          {formatHour(endHour)}
-        </span>
-      </div>
-
       {/* Timeline bar */}
       <div className="relative h-5 rounded-full bg-muted/80 overflow-hidden">
-        {/* Current time progress (today only) */}
-        {isToday &&
-          currentHourFrac > startHour &&
-          currentHourFrac < endHour && (
-            <div
-              className="absolute inset-y-0 left-0 bg-muted-foreground/10 rounded-full"
-              style={{
-                width: `${((currentHourFrac - startHour) / totalHours) * 100}%`,
-              }}
-            />
-          )}
+        {/* Layer 1: Working region (clock-in to clock-out/now) */}
+        {activeStart !== null && activeEnd !== null && activeEnd > activeStart && (
+          <div
+            className="absolute inset-y-0 bg-blue-400/50 dark:bg-blue-500/30"
+            style={{
+              left: `${pct(activeStart)}%`,
+              width: `${pct(activeEnd) - pct(activeStart)}%`,
+            }}
+          />
+        )}
 
-        {/* Break segments */}
+        {/* Layer 2: Break segments on top */}
         {daySessions.map((session) => {
           const sStart = new Date(session.startTime);
           const sEnd = new Date(session.endTime);
-          const breakStartH =
-            sStart.getHours() + sStart.getMinutes() / 60;
-          const breakEndH = sEnd.getHours() + sEnd.getMinutes() / 60;
+          const bStartH = sStart.getHours() + sStart.getMinutes() / 60;
+          const bEndH = sEnd.getHours() + sEnd.getMinutes() / 60;
 
-          const left = Math.max(
-            ((breakStartH - startHour) / totalHours) * 100,
-            0,
-          );
-          const right = Math.min(
-            ((breakEndH - startHour) / totalHours) * 100,
-            100,
-          );
-          const width = right - left;
+          const left = pct(bStartH);
+          const width = pct(bEndH) - left;
           if (width <= 0) return null;
 
           return (
@@ -188,52 +190,62 @@ function DailyChart({ sessions }: { sessions: BreakSession[] }) {
             >
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10">
                 <div className="bg-foreground text-background text-[10px] rounded px-1.5 py-0.5 whitespace-nowrap">
-                  {sStart.toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: false,
-                  })}
+                  {sStart.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}
                   –
-                  {sEnd.toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: false,
-                  })}
+                  {sEnd.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}
                 </div>
               </div>
             </div>
           );
         })}
 
-        {/* Current time marker (today only) */}
-        {isToday &&
-          currentHourFrac >= startHour &&
-          currentHourFrac <= endHour && (
-            <div
-              className="absolute top-0 bottom-0 w-px bg-foreground/50"
-              style={{
-                left: `${((currentHourFrac - startHour) / totalHours) * 100}%`,
-              }}
-            />
-          )}
+        {/* "Now" marker (today only) */}
+        {isToday && nowH >= schedStart && nowH <= schedEnd && (
+          <div
+            className="absolute top-0 bottom-0 w-0.5 bg-foreground/70"
+            style={{ left: `${pct(nowH)}%` }}
+          />
+        )}
+      </div>
+
+      {/* Time labels below the bar */}
+      <div className="relative h-4 mt-0.5">
+        <span className="absolute left-0 text-[9px] text-muted-foreground">
+          {formatHour(schedStart)}
+        </span>
+        <span className="absolute right-0 text-[9px] text-muted-foreground">
+          {formatHour(schedEnd)}
+        </span>
+        {isToday && nowH >= schedStart && nowH <= schedEnd && (
+          <span
+            className="absolute text-[9px] font-medium text-foreground/70 -translate-x-1/2"
+            style={{ left: `${pct(nowH)}%` }}
+          >
+            now
+          </span>
+        )}
       </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-3 mt-1.5">
+      <div className="flex items-center gap-3 mt-1">
+        <div className="flex items-center gap-1">
+          <span className="inline-block size-2 rounded-sm bg-blue-400/50 dark:bg-blue-500/30" />
+          <span className="text-[9px] text-muted-foreground">Working</span>
+        </div>
         <div className="flex items-center gap-1">
           <span className="inline-block size-2 rounded-sm bg-emerald-400/80 dark:bg-emerald-500/60" />
           <span className="text-[9px] text-muted-foreground">Break</span>
         </div>
         <span className="text-[9px] text-muted-foreground">
-          {daySessions.length} break{daySessions.length !== 1 ? "s" : ""}{" "}
-          &middot;{" "}
-          {formatDuration(
-            daySessions.reduce(
-              (sum, s) =>
-                sum + Math.round((s.endTime - s.startTime) / 1000),
-              0,
-            ),
-          )}
+          {daySessions.length} break{daySessions.length !== 1 ? "s" : ""}
+          {daySessions.length > 0 &&
+            ` · ${formatDuration(
+              daySessions.reduce(
+                (sum, s) =>
+                  sum + Math.round((s.endTime - s.startTime) / 1000),
+                0,
+              ),
+            )}`}
         </span>
       </div>
     </div>
