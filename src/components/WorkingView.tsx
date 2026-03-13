@@ -1,8 +1,7 @@
-import { useMemo, useState, useRef, useCallback } from "react";
+import { useMemo, useState } from "react";
 import { useAppStore, isCurrentlyWorking, perSecondRate } from "@/store/appStore";
 import { useSalaryCalc } from "@/hooks/useSalaryCalc";
 import { Play, LogIn, LogOut, Plus } from "lucide-react";
-import { TimePicker } from "@/components/TimePicker";
 import { BreakPicker } from "@/components/BreakPicker";
 
 function formatDuration(totalSeconds: number): string {
@@ -20,23 +19,6 @@ function todayAt(hour: number, minute: number): number {
   return d.getTime();
 }
 
-function useLongHover(onLongHover: () => void, delay = 1000) {
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const onEnter = useCallback(() => {
-    timerRef.current = setTimeout(onLongHover, delay);
-  }, [onLongHover, delay]);
-
-  const onLeave = useCallback(() => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-  }, []);
-
-  return { onMouseEnter: onEnter, onMouseLeave: onLeave };
-}
-
 export function WorkingView() {
   const sessions = useAppStore((s) => s.sessions);
   const setBreakStarted = useAppStore((s) => s.setBreakStarted);
@@ -51,15 +33,7 @@ export function WorkingView() {
   const working = isCurrentlyWorking(workIntervals, schedule);
   const isClocked = workIntervals.length > 0 && workIntervals[workIntervals.length - 1].end === null;
 
-  const [showPicker, setShowPicker] = useState<"in" | "out" | null>(null);
   const [showBreakPicker, setShowBreakPicker] = useState(false);
-
-  const clockInHover = useLongHover(
-    useCallback(() => setShowPicker("in"), []),
-  );
-  const clockOutHover = useLongHover(
-    useCallback(() => setShowPicker("out"), []),
-  );
 
   const todayStats = useMemo(() => {
     const today = new Date();
@@ -98,7 +72,6 @@ export function WorkingView() {
           {isClocked ? (
             <button
               onClick={() => clockOut()}
-              {...clockOutHover}
               className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/40 dark:hover:bg-orange-950/60 transition-colors"
             >
               <LogOut className="size-3" />
@@ -107,7 +80,6 @@ export function WorkingView() {
           ) : (
             <button
               onClick={() => clockIn()}
-              {...clockInHover}
               className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-950/60 transition-colors"
             >
               <LogIn className="size-3" />
@@ -132,27 +104,6 @@ export function WorkingView() {
           </button>
         </div>
       </div>
-
-      {showPicker === "in" && (
-        <TimePicker
-          label="Clock in at"
-          onConfirm={(h, m) => {
-            clockIn(todayAt(h, m));
-            setShowPicker(null);
-          }}
-          onCancel={() => setShowPicker(null)}
-        />
-      )}
-      {showPicker === "out" && (
-        <TimePicker
-          label="Clock out at"
-          onConfirm={(h, m) => {
-            clockOut(todayAt(h, m));
-            setShowPicker(null);
-          }}
-          onCancel={() => setShowPicker(null)}
-        />
-      )}
 
       {showBreakPicker && (
         <BreakPicker
