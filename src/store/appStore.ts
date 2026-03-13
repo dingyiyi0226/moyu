@@ -101,7 +101,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   loadFromDisk: async () => {
     try {
-      const store = await load(STORE_FILE, { autoSave: false });
+      const store = await load(STORE_FILE, { defaults: {}, autoSave: false });
       const salary = await store.get<SalaryConfig>("salary");
       const sessions = await store.get<BreakSession[]>("sessions");
       set({
@@ -116,7 +116,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   saveToDisk: async () => {
     try {
       const state = get();
-      const store = await load(STORE_FILE, { autoSave: false });
+      const store = await load(STORE_FILE, { defaults: {}, autoSave: false });
       await store.set("salary", state.salary);
       await store.set("sessions", state.sessions);
       await store.save();

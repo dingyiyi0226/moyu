@@ -1,50 +1,58 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import { useEffect, useState } from "react";
+import { useAppStore } from "@/store/appStore";
+import { useSystemEvents } from "@/hooks/useSystemEvents";
+import { BreakView } from "@/components/BreakView";
+import { WorkingView } from "@/components/WorkingView";
+import { SettingsPanel } from "@/components/SettingsPanel";
+import { HistoryList } from "@/components/HistoryList";
+import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const loadFromDisk = useAppStore((s) => s.loadFromDisk);
+  const isOnBreak = useAppStore((s) => s.isOnBreak);
+  const salary = useAppStore((s) => s.salary);
+  const [showSettings, setShowSettings] = useState(false);
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  useSystemEvents();
+
+  useEffect(() => {
+    loadFromDisk();
+  }, [loadFromDisk]);
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
+    <div className="w-[320px] p-4">
+      {showSettings ? (
+        <SettingsPanel onClose={() => setShowSettings(false)} />
+      ) : (
+        <>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-lg font-semibold">Moyu</h1>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowSettings(true)}
+            >
+              Settings
+            </Button>
+          </div>
 
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
+          {salary.amount === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground mb-2">No salary configured</p>
+              <Button onClick={() => setShowSettings(true)}>Set Salary</Button>
+            </div>
+          ) : isOnBreak ? (
+            <BreakView />
+          ) : (
+            <WorkingView />
+          )}
 
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+          <Separator className="my-4" />
+          <HistoryList />
+        </>
+      )}
+    </div>
   );
 }
 
