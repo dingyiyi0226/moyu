@@ -10,6 +10,7 @@ export function useBreakTimer() {
   const isOnBreak = useAppStore((s) => s.isOnBreak);
   const currentBreakStart = useAppStore((s) => s.currentBreakStart);
   const salary = useAppStore((s) => s.salary);
+  const schedule = useAppStore((s) => s.schedule);
   const updateCurrentEarnings = useAppStore((s) => s.updateCurrentEarnings);
   const currentEarnings = useAppStore((s) => s.currentEarnings);
   const rafRef = useRef<number | null>(null);
@@ -19,7 +20,7 @@ export function useBreakTimer() {
     if (!currentBreakStart) return;
     const now = Date.now();
     const elapsedSec = (now - currentBreakStart) / 1000;
-    const earnings = elapsedSec * perSecondRate(salary);
+    const earnings = elapsedSec * perSecondRate(salary, schedule);
     updateCurrentEarnings(earnings);
 
     // Throttle tray title updates to ~1/sec
@@ -29,7 +30,7 @@ export function useBreakTimer() {
     }
 
     rafRef.current = requestAnimationFrame(tick);
-  }, [currentBreakStart, salary, updateCurrentEarnings]);
+  }, [currentBreakStart, salary, schedule, updateCurrentEarnings]);
 
   useEffect(() => {
     if (isOnBreak && currentBreakStart) {
