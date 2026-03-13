@@ -1,8 +1,9 @@
 import { useMemo, useState, useRef, useCallback } from "react";
-import { useAppStore, isCurrentlyWorking } from "@/store/appStore";
+import { useAppStore, isCurrentlyWorking, perSecondRate } from "@/store/appStore";
 import { useSalaryCalc } from "@/hooks/useSalaryCalc";
-import { Play, LogIn, LogOut } from "lucide-react";
+import { Play, LogIn, LogOut, Plus } from "lucide-react";
 import { TimePicker } from "@/components/TimePicker";
+import { BreakPicker } from "@/components/BreakPicker";
 
 function formatDuration(totalSeconds: number): string {
   const h = Math.floor(totalSeconds / 3600);
@@ -44,11 +45,14 @@ export function WorkingView() {
   const clockedOutAt = useAppStore((s) => s.clockedOutAt);
   const clockIn = useAppStore((s) => s.clockIn);
   const clockOut = useAppStore((s) => s.clockOut);
+  const addSession = useAppStore((s) => s.addSession);
+  const salary = useAppStore((s) => s.salary);
   const { formatCurrency } = useSalaryCalc();
 
   const working = isCurrentlyWorking(clockedInAt, clockedOutAt, schedule);
 
   const [showPicker, setShowPicker] = useState<"in" | "out" | null>(null);
+  const [showBreakPicker, setShowBreakPicker] = useState(false);
 
   const clockInHover = useLongHover(
     useCallback(() => setShowPicker("in"), []),
@@ -131,6 +135,13 @@ export function WorkingView() {
               Break
             </button>
           )}
+          <button
+            onClick={() => setShowBreakPicker((v) => !v)}
+            className="flex items-center gap-0.5 px-1.5 py-1 rounded-lg text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            title="Add custom break"
+          >
+            <Plus className="size-3" />
+          </button>
         </div>
       </div>
 
@@ -152,6 +163,27 @@ export function WorkingView() {
             setShowPicker(null);
           }}
           onCancel={() => setShowPicker(null)}
+        />
+      )}
+
+      {showBreakPicker && (
+        <BreakPicker
+          onConfirm={(sH, sM, eH, eM) => {
+            const startTime = todayAt(sH, sM);
+            const endTime = todayAt(eH, eM);
+            if (endTime > startTime) {
+              const durationSec = (endTime - startTime) / 1000;
+              const earnings = durationSec * perSecondRate(salary, schedule);
+              addSession({
+                id: `${startTime}-${endTime}`,
+                startTime,
+                endTime,
+                earnings,
+              });
+            }
+            setShowBreakPicker(false);
+          }}
+          onCancel={() => setShowBreakPicker(false)}
         />
       )}
 
