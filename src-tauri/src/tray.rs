@@ -4,6 +4,9 @@ use tauri::{
     AppHandle, Manager,
 };
 
+#[cfg(target_os = "macos")]
+use tauri_nspanel::ManagerExt;
+
 pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
     let show_i = MenuItem::with_id(app, "show", "Show", true, None::<&str>)?;
     let quit_i = MenuItem::with_id(app, "quit", "Quit Moyu", true, None::<&str>)?;
@@ -21,9 +24,18 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                 app.exit(0);
             }
             "show" => {
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.show();
-                    let _ = window.set_focus();
+                #[cfg(target_os = "macos")]
+                {
+                    if let Ok(panel) = app.get_webview_panel("main") {
+                        panel.show_and_make_key();
+                    }
+                }
+                #[cfg(not(target_os = "macos"))]
+                {
+                    if let Some(window) = app.get_webview_window("main") {
+                        let _ = window.show();
+                        let _ = window.set_focus();
+                    }
                 }
             }
             _ => {}
@@ -37,25 +49,56 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
             } = event
             {
                 let app = tray.app_handle();
-                if let Some(window) = app.get_webview_window("main") {
-                    if window.is_visible().unwrap_or(false) {
-                        let _ = window.hide();
-                    } else {
-                        // Position window centered below the tray icon
-                        if let Ok(win_size) = window.outer_size() {
-                            let scale = window.scale_factor().unwrap_or(1.0);
-                            let icon_pos = rect.position.to_logical::<f64>(scale);
-                            let icon_size = rect.size.to_logical::<f64>(scale);
-                            let win_w = win_size.width as f64 / scale;
 
-                            let x = icon_pos.x + (icon_size.width / 2.0) - (win_w / 2.0);
-                            let y = icon_pos.y + icon_size.height;
-                            let _ = window.set_position(
-                                tauri::LogicalPosition::new(x, y),
-                            );
+                #[cfg(target_os = "macos")]
+                {
+                    if let Ok(panel) = app.get_webview_panel("main") {
+                        if panel.is_visible() {
+                            panel.hide();
+                        } else {
+                            // Position window centered below the tray icon
+                            if let Some(window) = app.get_webview_window("main") {
+                                if let Ok(win_size) = window.outer_size() {
+                                    let scale = window.scale_factor().unwrap_or(1.0);
+                                    let icon_pos = rect.position.to_logical::<f64>(scale);
+                                    let icon_size = rect.size.to_logical::<f64>(scale);
+                                    let win_w = win_size.width as f64 / scale;
+
+                                    let x = icon_pos.x + (icon_size.width / 2.0)
+                                        - (win_w / 2.0);
+                                    let y = icon_pos.y + icon_size.height;
+                                    let _ = window.set_position(
+                                        tauri::LogicalPosition::new(x, y),
+                                    );
+                                }
+                            }
+                            panel.show_and_make_key();
                         }
-                        let _ = window.show();
-                        let _ = window.set_focus();
+                    }
+                }
+
+                #[cfg(not(target_os = "macos"))]
+                {
+                    if let Some(window) = app.get_webview_window("main") {
+                        if window.is_visible().unwrap_or(false) {
+                            let _ = window.hide();
+                        } else {
+                            if let Ok(win_size) = window.outer_size() {
+                                let scale = window.scale_factor().unwrap_or(1.0);
+                                let icon_pos = rect.position.to_logical::<f64>(scale);
+                                let icon_size = rect.size.to_logical::<f64>(scale);
+                                let win_w = win_size.width as f64 / scale;
+
+                                let x = icon_pos.x + (icon_size.width / 2.0)
+                                    - (win_w / 2.0);
+                                let y = icon_pos.y + icon_size.height;
+                                let _ = window.set_position(
+                                    tauri::LogicalPosition::new(x, y),
+                                );
+                            }
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
                     }
                 }
             }
