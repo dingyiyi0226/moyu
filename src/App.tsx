@@ -21,7 +21,7 @@ function App() {
   }, [loadFromDisk]);
 
   return (
-    <div className="w-[320px] min-h-0 select-none">
+    <div className="w-[320px] min-h-0 select-none bg-background rounded-xl overflow-hidden">
       {showSettings ? (
         <div className="p-4">
           <div className="flex items-center gap-2 mb-5">
