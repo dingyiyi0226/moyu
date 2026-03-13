@@ -83,6 +83,7 @@
   }
   html, body {
     background: transparent;
+    overflow: hidden;
   }
   body {
     @apply text-foreground;
@@ -92,20 +93,5 @@
   }
   html {
     @apply font-sans;
-  }
-
-  /* Thin native-style scrollbar */
-  ::-webkit-scrollbar {
-    width: 4px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: oklch(0.8 0 0);
-    border-radius: 4px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: oklch(0.65 0 0);
   }
 }
