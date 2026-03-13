@@ -1,7 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useState, useRef, useCallback } from "react";
 import { useAppStore, isCurrentlyWorking } from "@/store/appStore";
 import { useSalaryCalc } from "@/hooks/useSalaryCalc";
 import { Play, LogIn, LogOut } from "lucide-react";
+import { TimePicker } from "@/components/TimePicker";
 
 function formatDuration(totalSeconds: number): string {
   const h = Math.floor(totalSeconds / 3600);
@@ -10,6 +11,29 @@ function formatDuration(totalSeconds: number): string {
   if (h > 0) return `${h}h ${m}m`;
   if (m > 0) return `${m}m ${s}s`;
   return `${s}s`;
+}
+
+function todayAt(hour: number, minute: number): number {
+  const d = new Date();
+  d.setHours(hour, minute, 0, 0);
+  return d.getTime();
+}
+
+function useLongHover(onLongHover: () => void, delay = 1000) {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const onEnter = useCallback(() => {
+    timerRef.current = setTimeout(onLongHover, delay);
+  }, [onLongHover, delay]);
+
+  const onLeave = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  return { onMouseEnter: onEnter, onMouseLeave: onLeave };
 }
 
 export function WorkingView() {
@@ -23,6 +47,15 @@ export function WorkingView() {
   const { formatCurrency } = useSalaryCalc();
 
   const working = isCurrentlyWorking(clockedInAt, clockedOutAt, schedule);
+
+  const [showPicker, setShowPicker] = useState<"in" | "out" | null>(null);
+
+  const clockInHover = useLongHover(
+    useCallback(() => setShowPicker("in"), []),
+  );
+  const clockOutHover = useLongHover(
+    useCallback(() => setShowPicker("out"), []),
+  );
 
   const todayStats = useMemo(() => {
     const today = new Date();
@@ -73,6 +106,7 @@ export function WorkingView() {
           {clockedInAt && !clockedOutAt ? (
             <button
               onClick={() => clockOut()}
+              {...clockOutHover}
               className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/40 dark:hover:bg-orange-950/60 transition-colors"
             >
               <LogOut className="size-3" />
@@ -81,6 +115,7 @@ export function WorkingView() {
           ) : !clockedInAt ? (
             <button
               onClick={() => clockIn()}
+              {...clockInHover}
               className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-950/60 transition-colors"
             >
               <LogIn className="size-3" />
@@ -98,6 +133,27 @@ export function WorkingView() {
           )}
         </div>
       </div>
+
+      {showPicker === "in" && (
+        <TimePicker
+          label="Clock in at"
+          onConfirm={(h, m) => {
+            clockIn(todayAt(h, m));
+            setShowPicker(null);
+          }}
+          onCancel={() => setShowPicker(null)}
+        />
+      )}
+      {showPicker === "out" && (
+        <TimePicker
+          label="Clock out at"
+          onConfirm={(h, m) => {
+            clockOut(todayAt(h, m));
+            setShowPicker(null);
+          }}
+          onCancel={() => setShowPicker(null)}
+        />
+      )}
 
       <div className="space-y-3">
         <div className="rounded-xl bg-muted/60 px-4 py-3">
