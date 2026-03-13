@@ -5,6 +5,7 @@ import { BreakView } from "@/components/BreakView";
 import { WorkingView } from "@/components/WorkingView";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { HistoryList } from "@/components/HistoryList";
+import { HistoryChart } from "@/components/HistoryChart";
 import { Settings, ChevronLeft } from "lucide-react";
 
 function App() {
@@ -68,6 +69,8 @@ function App() {
             )}
           </div>
 
+          <div className="h-px bg-border mx-4" />
+          <HistoryChart />
           <div className="h-px bg-border mx-4" />
           <HistoryList />
         </>

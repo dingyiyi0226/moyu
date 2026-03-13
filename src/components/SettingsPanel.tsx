@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAppStore, DEFAULT_SCHEDULE, type SalaryPeriod } from "@/store/appStore";
+import { useAppStore, type SalaryPeriod } from "@/store/appStore";
 
 interface SettingsPanelProps {
   onClose: () => void;
