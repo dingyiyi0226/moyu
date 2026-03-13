@@ -14,9 +14,7 @@ const periods: { value: SalaryPeriod; label: string }[] = [
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function formatHour(h: number): string {
-  const period = h >= 12 ? "PM" : "AM";
-  const display = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return `${display}:00 ${period}`;
+  return `${String(h).padStart(2, "0")}:00`;
 }
 
 export function SettingsPanel({ onClose }: SettingsPanelProps) {

@@ -59,6 +59,7 @@ export function HistoryList() {
               const time = new Date(session.startTime).toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
+                hour12: false,
               });
               return (
                 <div
