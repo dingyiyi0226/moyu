@@ -34,9 +34,10 @@ export interface AppState {
   schedule: WorkSchedule;
   setSchedule: (schedule: WorkSchedule) => void;
 
-  clockedInAt: number | null; // Unix timestamp ms when clocked in, null if not
-  clockIn: () => void;
-  clockOut: () => void;
+  clockedInAt: number | null; // Unix timestamp ms, first clock-in of the day
+  clockedOutAt: number | null; // Unix timestamp ms, last clock-out of the day
+  clockIn: (at?: number) => void;
+  clockOut: (at?: number) => void;
 
   isOnBreak: boolean;
   currentBreakStart: number | null;
@@ -74,10 +75,15 @@ export function isWithinWorkSchedule(schedule: WorkSchedule): boolean {
   return schedule.workDays.includes(day) && hour >= schedule.startHour && hour < schedule.endHour;
 }
 
-/** Returns true if the user is currently working: clocked in, or within schedule if not clocked in. */
-export function isCurrentlyWorking(clockedInAt: number | null, schedule: WorkSchedule): boolean {
-  if (clockedInAt !== null) return true;
-  return isWithinWorkSchedule(schedule);
+/** Returns true if the user is currently working: clocked in (and not yet clocked out), or within schedule. */
+export function isCurrentlyWorking(
+  clockedInAt: number | null,
+  clockedOutAt: number | null,
+  schedule: WorkSchedule,
+): boolean {
+  if (clockedInAt !== null && clockedOutAt === null) return true;
+  if (clockedInAt === null) return isWithinWorkSchedule(schedule);
+  return false; // clocked in and clocked out = done for the day
 }
 
 const STORE_FILE = "moyu-data.json";
@@ -86,6 +92,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   salary: { amount: 0, period: "annual" },
   schedule: DEFAULT_SCHEDULE,
   clockedInAt: null,
+  clockedOutAt: null,
   isOnBreak: false,
   currentBreakStart: null,
   currentEarnings: 0,
@@ -101,13 +108,20 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().saveToDisk();
   },
 
-  clockIn: () => {
-    set({ clockedInAt: Date.now() });
-    get().saveToDisk();
+  clockIn: (at?: number) => {
+    const state = get();
+    const ts = at ?? Date.now();
+    // Keep the first clock-in of the day
+    if (state.clockedInAt === null) {
+      set({ clockedInAt: ts, clockedOutAt: null });
+      get().saveToDisk();
+    }
   },
 
-  clockOut: () => {
-    set({ clockedInAt: null });
+  clockOut: (at?: number) => {
+    const ts = at ?? Date.now();
+    // Always update to the latest clock-out
+    set({ clockedOutAt: ts });
     get().saveToDisk();
   },
 
@@ -158,11 +172,13 @@ export const useAppStore = create<AppState>((set, get) => ({
       const sessions = await store.get<BreakSession[]>("sessions");
       const schedule = await store.get<WorkSchedule>("schedule");
       const clockedInAt = await store.get<number | null>("clockedInAt");
+      const clockedOutAt = await store.get<number | null>("clockedOutAt");
       set({
         salary: salary ?? { amount: 0, period: "annual" },
         sessions: sessions ?? [],
         schedule: schedule ?? DEFAULT_SCHEDULE,
         clockedInAt: clockedInAt ?? null,
+        clockedOutAt: clockedOutAt ?? null,
       });
     } catch (e) {
       console.error("Failed to load store:", e);
@@ -177,6 +193,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       await store.set("sessions", state.sessions);
       await store.set("schedule", state.schedule);
       await store.set("clockedInAt", state.clockedInAt);
+      await store.set("clockedOutAt", state.clockedOutAt);
       await store.save();
     } catch (e) {
       console.error("Failed to save store:", e);

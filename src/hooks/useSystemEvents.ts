@@ -7,13 +7,14 @@ export function useSystemEvents() {
   const setBreakEnded = useAppStore((s) => s.setBreakEnded);
   const schedule = useAppStore((s) => s.schedule);
   const clockedInAt = useAppStore((s) => s.clockedInAt);
+  const clockedOutAt = useAppStore((s) => s.clockedOutAt);
 
   useEffect(() => {
     const unlisteners: (() => void)[] = [];
 
     const setup = async () => {
       const unlisten1 = await listen<number>("break:started", (event) => {
-        if (isCurrentlyWorking(clockedInAt, schedule)) {
+        if (isCurrentlyWorking(clockedInAt, clockedOutAt, schedule)) {
           setBreakStarted(event.payload);
         }
       });
@@ -30,5 +31,5 @@ export function useSystemEvents() {
     return () => {
       unlisteners.forEach((fn) => fn());
     };
-  }, [setBreakStarted, setBreakEnded, schedule, clockedInAt]);
+  }, [setBreakStarted, setBreakEnded, schedule, clockedInAt, clockedOutAt]);
 }

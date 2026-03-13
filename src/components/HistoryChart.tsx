@@ -101,6 +101,7 @@ function toPercent(hour: number, schedStart: number, schedEnd: number): number {
 function DailyChart({ sessions }: { sessions: BreakSession[] }) {
   const schedule = useAppStore((s) => s.schedule);
   const clockedInAt = useAppStore((s) => s.clockedInAt);
+  const clockedOutAt = useAppStore((s) => s.clockedOutAt);
   const [dayOffset, setDayOffset] = useState(0);
 
   const targetDate = getOffsetDate(dayOffset);
@@ -116,21 +117,24 @@ function DailyChart({ sessions }: { sessions: BreakSession[] }) {
   const schedStart = schedule.startHour;
   const schedEnd = schedule.endHour;
 
-  // Clock-in/out: only use real clock-in for today
+  // Clock-in/out: only use real values for today
   const clockInH =
     isToday && clockedInAt
       ? new Date(clockedInAt).getHours() +
         new Date(clockedInAt).getMinutes() / 60
       : null;
+  const clockOutH =
+    isToday && clockedOutAt
+      ? new Date(clockedOutAt).getHours() +
+        new Date(clockedOutAt).getMinutes() / 60
+      : null;
 
-  // For past days with sessions, infer clock-in from first session and clock-out from last
-  // For today: clock-out = now (still working)
   const now = new Date();
   const nowH = now.getHours() + now.getMinutes() / 60;
 
   const activeStart = clockInH ?? (daySessions.length > 0 ? schedStart : null);
   const activeEnd = isToday
-    ? Math.min(nowH, schedEnd)
+    ? clockOutH ?? Math.min(nowH, schedEnd)
     : daySessions.length > 0
       ? schedEnd
       : null;

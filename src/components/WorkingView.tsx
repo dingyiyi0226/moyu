@@ -17,11 +17,12 @@ export function WorkingView() {
   const setBreakStarted = useAppStore((s) => s.setBreakStarted);
   const schedule = useAppStore((s) => s.schedule);
   const clockedInAt = useAppStore((s) => s.clockedInAt);
+  const clockedOutAt = useAppStore((s) => s.clockedOutAt);
   const clockIn = useAppStore((s) => s.clockIn);
   const clockOut = useAppStore((s) => s.clockOut);
   const { formatCurrency } = useSalaryCalc();
 
-  const working = isCurrentlyWorking(clockedInAt, schedule);
+  const working = isCurrentlyWorking(clockedInAt, clockedOutAt, schedule);
 
   const todayStats = useMemo(() => {
     const today = new Date();
@@ -69,23 +70,23 @@ export function WorkingView() {
           </span>
         </div>
         <div className="flex items-center gap-1.5">
-          {clockedInAt ? (
+          {clockedInAt && !clockedOutAt ? (
             <button
-              onClick={clockOut}
+              onClick={() => clockOut()}
               className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/40 dark:hover:bg-orange-950/60 transition-colors"
             >
               <LogOut className="size-3" />
               Clock Out
             </button>
-          ) : (
+          ) : !clockedInAt ? (
             <button
-              onClick={clockIn}
+              onClick={() => clockIn()}
               className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-950/60 transition-colors"
             >
               <LogIn className="size-3" />
               Clock In
             </button>
-          )}
+          ) : null}
           {working && (
             <button
               onClick={() => setBreakStarted(Date.now())}
