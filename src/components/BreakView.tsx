@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useBreakTimer } from "@/hooks/useBreakTimer";
 import { useSalaryCalc } from "@/hooks/useSalaryCalc";
+import { useAppStore } from "@/store/appStore";
+import { Square } from "lucide-react";
 
 function formatDuration(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60);
@@ -11,6 +13,7 @@ function formatDuration(totalSeconds: number): string {
 export function BreakView() {
   const { currentEarnings, currentBreakStart } = useBreakTimer();
   const { formatCurrency, rate, formatRate } = useSalaryCalc();
+  const setBreakEnded = useAppStore((s) => s.setBreakEnded);
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -23,14 +26,23 @@ export function BreakView() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <span className="relative flex size-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-          <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
-        </span>
-        <span className="text-xs font-medium text-emerald-600">
-          On Break &middot; {formatDuration(elapsed)}
-        </span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="relative flex size-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+          </span>
+          <span className="text-xs font-medium text-emerald-600">
+            On Break &middot; {formatDuration(elapsed)}
+          </span>
+        </div>
+        <button
+          onClick={() => setBreakEnded(Date.now())}
+          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-950/40 dark:hover:bg-red-950/60 transition-colors"
+        >
+          <Square className="size-3" />
+          Stop
+        </button>
       </div>
 
       <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/40 px-4 py-5 text-center">
