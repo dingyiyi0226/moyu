@@ -1,7 +1,7 @@
 import { useMemo } from "react";
-import { useAppStore } from "@/store/appStore";
+import { useAppStore, isCurrentlyWorking } from "@/store/appStore";
 import { useSalaryCalc } from "@/hooks/useSalaryCalc";
-import { Play } from "lucide-react";
+import { Play, LogIn, LogOut } from "lucide-react";
 
 function formatDuration(totalSeconds: number): string {
   const h = Math.floor(totalSeconds / 3600);
@@ -15,7 +15,13 @@ function formatDuration(totalSeconds: number): string {
 export function WorkingView() {
   const sessions = useAppStore((s) => s.sessions);
   const setBreakStarted = useAppStore((s) => s.setBreakStarted);
+  const schedule = useAppStore((s) => s.schedule);
+  const clockedInAt = useAppStore((s) => s.clockedInAt);
+  const clockIn = useAppStore((s) => s.clockIn);
+  const clockOut = useAppStore((s) => s.clockOut);
   const { formatCurrency } = useSalaryCalc();
+
+  const working = isCurrentlyWorking(clockedInAt, schedule);
 
   const todayStats = useMemo(() => {
     const today = new Date();
@@ -51,16 +57,45 @@ export function WorkingView() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="inline-flex size-2 rounded-full bg-zinc-300 dark:bg-zinc-600" />
-          <span className="text-xs font-medium text-muted-foreground">Working</span>
+          <span
+            className={`inline-flex size-2 rounded-full ${
+              working
+                ? "bg-emerald-400 dark:bg-emerald-500"
+                : "bg-zinc-300 dark:bg-zinc-600"
+            }`}
+          />
+          <span className="text-xs font-medium text-muted-foreground">
+            {working ? "Working" : "Off hours"}
+          </span>
         </div>
-        <button
-          onClick={() => setBreakStarted(Date.now())}
-          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60 transition-colors"
-        >
-          <Play className="size-3" />
-          Start Break
-        </button>
+        <div className="flex items-center gap-1.5">
+          {clockedInAt ? (
+            <button
+              onClick={clockOut}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/40 dark:hover:bg-orange-950/60 transition-colors"
+            >
+              <LogOut className="size-3" />
+              Clock Out
+            </button>
+          ) : (
+            <button
+              onClick={clockIn}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-950/60 transition-colors"
+            >
+              <LogIn className="size-3" />
+              Clock In
+            </button>
+          )}
+          {working && (
+            <button
+              onClick={() => setBreakStarted(Date.now())}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60 transition-colors"
+            >
+              <Play className="size-3" />
+              Break
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="space-y-3">
