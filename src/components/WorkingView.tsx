@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useAppStore, isCurrentlyWorking, perSecondRate } from "@/store/appStore";
 import { useSalaryCalc } from "@/hooks/useSalaryCalc";
-import { Play, LogIn, LogOut, Plus } from "lucide-react";
+import { Play, LogIn, LogOut, Plus, Coffee, Clock } from "lucide-react";
 import { RangePicker } from "@/components/BreakPicker";
 
 function formatDuration(totalSeconds: number): string {
@@ -109,22 +109,24 @@ export function WorkingView() {
         <div className="flex items-center gap-1.5">
           <button
             onClick={() => setCustomPicker("break")}
-            className="flex-1 h-7 rounded-lg text-[11px] font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60 transition-colors"
+            className="flex-1 h-7 rounded-lg text-[11px] font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60 transition-colors flex items-center justify-center gap-1"
           >
-            Add Break
+            <Coffee className="size-3" />
+            Break
           </button>
           <button
             onClick={() => setCustomPicker("work")}
-            className="flex-1 h-7 rounded-lg text-[11px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-950/60 transition-colors"
+            className="flex-1 h-7 rounded-lg text-[11px] font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-950/60 transition-colors flex items-center justify-center gap-1"
           >
-            Add Work Time
+            <Clock className="size-3" />
+            Work
           </button>
         </div>
       )}
 
       {customPicker === "break" && (
         <RangePicker
-          confirmLabel="Add Break"
+          confirmClassName="text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60"
           onConfirm={(sH, sM, eH, eM) => {
             const startTime = todayAt(sH, sM);
             const endTime = todayAt(eH, eM);
@@ -146,7 +148,7 @@ export function WorkingView() {
 
       {customPicker === "work" && (
         <RangePicker
-          confirmLabel="Add Work Time"
+          confirmClassName="text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-950/60"
           onConfirm={(sH, sM, eH, eM) => {
             clockIn(todayAt(sH, sM));
             clockOut(todayAt(eH, eM));
