@@ -1,3 +1,4 @@
+mod screen_events;
 mod tray;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -9,6 +10,7 @@ pub fn run() {
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
             tray::create_tray(app.handle())?;
+            screen_events::start_listening(app.handle().clone());
 
             Ok(())
         })
