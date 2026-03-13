@@ -36,7 +36,7 @@ export function HistoryList() {
   }
 
   return (
-    <div className="max-h-[220px] overflow-y-auto">
+    <div className="max-h-[320px] overflow-y-auto">
       {groupedByDay.map((group, groupIdx) => (
         <div key={group.date}>
           {groupIdx > 0 && <div className="h-px bg-border mx-4" />}
