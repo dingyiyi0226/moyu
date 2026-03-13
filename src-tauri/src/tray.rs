@@ -50,3 +50,14 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
 
     Ok(())
 }
+
+#[tauri::command]
+pub fn update_tray_title(app: AppHandle, title: String) {
+    if let Some(tray) = app.tray_by_id("moyu-tray") {
+        let _ = tray.set_title(if title.is_empty() {
+            None
+        } else {
+            Some(&title)
+        });
+    }
+}
