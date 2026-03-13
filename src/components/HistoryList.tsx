@@ -50,9 +50,12 @@ export function HistoryList() {
               </span>
             </div>
             {group.sessions.map((session) => {
-              const duration = Math.round(
-                (session.endTime - session.startTime) / 1000 / 60,
+              const totalSec = Math.round(
+                (session.endTime - session.startTime) / 1000,
               );
+              const m = Math.floor(totalSec / 60);
+              const s = totalSec % 60;
+              const duration = m > 0 ? `${m}m ${s}s` : `${s}s`;
               const time = new Date(session.startTime).toLocaleTimeString([], {
                 hour: "2-digit",
                 minute: "2-digit",
@@ -63,7 +66,7 @@ export function HistoryList() {
                   className="flex items-center justify-between py-1 text-[12px]"
                 >
                   <span className="text-muted-foreground">
-                    {time} &middot; {duration}min
+                    {time} &middot; {duration}
                   </span>
                   <span className="tabular-nums text-foreground/80">
                     {formatCurrency(session.earnings)}

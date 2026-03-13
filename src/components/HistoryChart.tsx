@@ -28,17 +28,19 @@ function getWeekRange(weekKey: string): string {
   return `${fmt(startDay)}-${fmt(endDay)}`;
 }
 
-function formatMinutes(totalMin: number): string {
-  if (totalMin < 60) return `${totalMin}m`;
-  const h = Math.floor(totalMin / 60);
-  const m = totalMin % 60;
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+function formatDuration(totalSec: number): string {
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
 }
 
 interface BarData {
   key: string;
   label: string;
-  durationMin: number;
+  durationSec: number;
   earnings: number;
 }
 
@@ -46,12 +48,12 @@ function aggregateSessions(
   sessions: BreakSession[],
   mode: ViewMode,
 ): BarData[] {
-  const groups: Record<string, { durationMin: number; earnings: number }> = {};
+  const groups: Record<string, { durationSec: number; earnings: number }> = {};
 
   for (const s of sessions) {
     const key = mode === "daily" ? getDateKey(s.startTime) : getWeekKey(s.startTime);
-    if (!groups[key]) groups[key] = { durationMin: 0, earnings: 0 };
-    groups[key].durationMin += Math.round((s.endTime - s.startTime) / 60000);
+    if (!groups[key]) groups[key] = { durationSec: 0, earnings: 0 };
+    groups[key].durationSec += Math.round((s.endTime - s.startTime) / 1000);
     groups[key].earnings += s.earnings;
   }
 
@@ -83,7 +85,7 @@ export function HistoryChart() {
 
   if (sessions.length === 0) return null;
 
-  const maxDuration = Math.max(...bars.map((b) => b.durationMin), 1);
+  const maxDuration = Math.max(...bars.map((b) => b.durationSec), 1);
 
   return (
     <div className="px-4 py-3">
@@ -110,7 +112,7 @@ export function HistoryChart() {
 
       <div className="flex items-end gap-1" style={{ height: 100 }}>
         {bars.map((bar) => {
-          const height = Math.max((bar.durationMin / maxDuration) * 100, 4);
+          const height = Math.max((bar.durationSec / maxDuration) * 100, 4);
           return (
             <div
               key={bar.key}
@@ -118,7 +120,7 @@ export function HistoryChart() {
             >
               <div className="absolute bottom-full mb-1 hidden group-hover:block z-10">
                 <div className="bg-foreground text-background text-[10px] rounded px-1.5 py-0.5 whitespace-nowrap">
-                  {formatMinutes(bar.durationMin)} &middot; {formatCurrency(bar.earnings)}
+                  {formatDuration(bar.durationSec)} &middot; {formatCurrency(bar.earnings)}
                 </div>
               </div>
               <div
