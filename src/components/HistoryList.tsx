@@ -1,8 +1,6 @@
 import { useMemo } from "react";
 import { useAppStore, type BreakSession } from "@/store/appStore";
 import { useSalaryCalc } from "@/hooks/useSalaryCalc";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 
 interface DayGroup {
   date: string;
@@ -31,26 +29,26 @@ export function HistoryList() {
 
   if (sessions.length === 0) {
     return (
-      <p className="text-center text-sm text-muted-foreground py-4">
-        No break sessions yet. Lock your screen to start tracking.
+      <p className="text-center text-[11px] text-muted-foreground py-5">
+        Lock your screen to start tracking breaks.
       </p>
     );
   }
 
   return (
-    <div className="space-y-3 max-h-[240px] overflow-y-auto">
-      {groupedByDay.map((group) => (
-        <Card key={group.date}>
-          <CardHeader className="py-3 px-4">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-sm">{group.date}</CardTitle>
-              <span className="text-sm font-semibold text-green-600">
+    <div className="max-h-[220px] overflow-y-auto">
+      {groupedByDay.map((group, groupIdx) => (
+        <div key={group.date}>
+          {groupIdx > 0 && <div className="h-px bg-border mx-4" />}
+          <div className="px-4 pt-3 pb-1">
+            <div className="flex items-baseline justify-between mb-1.5">
+              <span className="text-[11px] font-medium text-muted-foreground">
+                {group.date}
+              </span>
+              <span className="text-[11px] font-semibold tabular-nums text-emerald-600">
                 {formatCurrency(group.total)}
               </span>
             </div>
-          </CardHeader>
-          <Separator />
-          <CardContent className="py-2 px-4">
             {group.sessions.map((session) => {
               const duration = Math.round(
                 (session.endTime - session.startTime) / 1000 / 60,
@@ -62,19 +60,19 @@ export function HistoryList() {
               return (
                 <div
                   key={session.id}
-                  className="flex justify-between items-center py-1 text-sm"
+                  className="flex items-center justify-between py-1 text-[12px]"
                 >
                   <span className="text-muted-foreground">
-                    {time} ({duration}min)
+                    {time} &middot; {duration}min
                   </span>
-                  <span className="tabular-nums">
+                  <span className="tabular-nums text-foreground/80">
                     {formatCurrency(session.earnings)}
                   </span>
                 </div>
               );
             })}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ))}
     </div>
   );

@@ -1,8 +1,5 @@
 import { useState } from "react";
 import { useAppStore, type SalaryPeriod } from "@/store/appStore";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -28,45 +25,51 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Settings</h2>
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          Back
-        </Button>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="salary">Salary Amount</Label>
-        <Input
+    <div className="space-y-5">
+      <div>
+        <label
+          htmlFor="salary"
+          className="block text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5"
+        >
+          Salary Amount
+        </label>
+        <input
           id="salary"
           type="number"
           placeholder="e.g. 100000"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
+          className="w-full h-9 rounded-lg border border-input bg-transparent px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:ring-1 focus:ring-foreground/10"
         />
       </div>
 
-      <div className="space-y-2">
-        <Label>Pay Period</Label>
-        <div className="flex gap-2">
+      <div>
+        <label className="block text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5">
+          Pay Period
+        </label>
+        <div className="flex rounded-lg bg-muted p-0.5">
           {periods.map((p) => (
-            <Button
+            <button
               key={p.value}
-              variant={period === p.value ? "default" : "outline"}
-              size="sm"
               onClick={() => setPeriod(p.value)}
-              className="flex-1"
+              className={`flex-1 rounded-md py-1.5 text-xs font-medium transition-all ${
+                period === p.value
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
             >
               {p.label}
-            </Button>
+            </button>
           ))}
         </div>
       </div>
 
-      <Button className="w-full" onClick={handleSave}>
+      <button
+        onClick={handleSave}
+        className="w-full h-9 rounded-lg bg-foreground text-background text-sm font-medium transition-colors hover:bg-foreground/90"
+      >
         Save
-      </Button>
+      </button>
     </div>
   );
 }
