@@ -9,7 +9,7 @@ function getDateKey(timestamp: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-const WEEK_DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const WEEK_DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function formatDuration(totalSec: number): string {
   const h = Math.floor(totalSec / 3600);
@@ -32,17 +32,16 @@ function aggregateSessions(
   mode: ViewMode,
 ): BarData[] {
   if (mode === "weekly") {
-    // Build 7 bars for the current week (Mon-Sun), including empty days
+    // Build 7 bars for the current week (Sun-Sat), including empty days
     const today = new Date();
     const dayOfWeek = today.getDay(); // 0=Sun
-    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    const monday = new Date(today);
-    monday.setHours(0, 0, 0, 0);
-    monday.setDate(today.getDate() + mondayOffset);
+    const sunday = new Date(today);
+    sunday.setHours(0, 0, 0, 0);
+    sunday.setDate(today.getDate() - dayOfWeek);
 
     return WEEK_DAY_LABELS.map((label, i) => {
-      const date = new Date(monday);
-      date.setDate(monday.getDate() + i);
+      const date = new Date(sunday);
+      date.setDate(sunday.getDate() + i);
       const dateKey = getDateKey(date.getTime());
 
       let durationSec = 0;
@@ -117,7 +116,7 @@ export function HistoryChart() {
         {bars.map((bar) => {
           const h = Math.max(Math.round((bar.durationSec / maxDuration) * BAR_HEIGHT), 3);
           return (
-            <div key={bar.key} className="group relative" style={{ width: 18 }}>
+            <div key={bar.key} className="group relative" style={{ width: 30 }}>
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10">
                 <div className="bg-foreground text-background text-[10px] rounded px-1.5 py-0.5 whitespace-nowrap">
                   {formatDuration(bar.durationSec)} &middot; {formatCurrency(bar.earnings)}
@@ -137,7 +136,7 @@ export function HistoryChart() {
           <div
             key={bar.key}
             className="text-center text-[9px] text-muted-foreground truncate"
-            style={{ width: 18 }}
+            style={{ width: 30 }}
           >
             {bar.label}
           </div>
