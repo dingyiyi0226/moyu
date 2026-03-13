@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { useAppStore } from "@/store/appStore";
 import { useSalaryCalc } from "@/hooks/useSalaryCalc";
-import { Card, CardContent } from "@/components/ui/card";
 
 function formatDuration(totalSeconds: number): string {
   const h = Math.floor(totalSeconds / 3600);
@@ -45,36 +44,38 @@ export function WorkingView() {
   }, [sessions]);
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <span className="inline-block h-2 w-2 rounded-full bg-gray-400" />
-        Working...
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <span className="inline-flex size-2 rounded-full bg-zinc-300 dark:bg-zinc-600" />
+        <span className="text-xs font-medium text-muted-foreground">Working</span>
       </div>
 
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex justify-between items-baseline">
-            <span className="text-sm text-muted-foreground">Today's breaks</span>
-            <span className="text-2xl font-bold tabular-nums">
+      <div className="space-y-3">
+        <div className="rounded-xl bg-muted/60 px-4 py-3">
+          <div className="flex items-baseline justify-between">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              Today
+            </span>
+            <span className="text-xl font-semibold tabular-nums tracking-tight">
               {formatCurrency(todayStats.earnings)}
             </span>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {todayStats.count} break{todayStats.count !== 1 ? "s" : ""} · {formatDuration(todayStats.duration)}
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            {todayStats.count} break{todayStats.count !== 1 ? "s" : ""} &middot; {formatDuration(todayStats.duration)}
           </p>
-        </CardContent>
-      </Card>
+        </div>
 
-      <Card>
-        <CardContent className="pt-4">
-          <div className="flex justify-between items-baseline">
-            <span className="text-sm text-muted-foreground">This month</span>
-            <span className="text-lg font-semibold tabular-nums">
+        <div className="rounded-xl bg-muted/60 px-4 py-3">
+          <div className="flex items-baseline justify-between">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              This month
+            </span>
+            <span className="text-base font-semibold tabular-nums tracking-tight">
               {formatCurrency(monthStats)}
             </span>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

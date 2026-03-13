@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useBreakTimer } from "@/hooks/useBreakTimer";
 import { useSalaryCalc } from "@/hooks/useSalaryCalc";
-import { Card, CardContent } from "@/components/ui/card";
 
 function formatDuration(totalSeconds: number): string {
   const m = Math.floor(totalSeconds / 60);
@@ -23,23 +22,28 @@ export function BreakView() {
   }, [currentBreakStart]);
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2 text-sm text-green-600">
-        <span className="inline-block h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-        On Break — {formatDuration(elapsed)}
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <span className="relative flex size-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+        </span>
+        <span className="text-xs font-medium text-emerald-600">
+          On Break &middot; {formatDuration(elapsed)}
+        </span>
       </div>
 
-      <Card className="border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800">
-        <CardContent className="pt-6 text-center">
-          <p className="text-sm text-muted-foreground mb-1">Earned this break</p>
-          <p className="text-4xl font-bold text-green-700 dark:text-green-400 tabular-nums">
-            {formatCurrency(currentEarnings)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            Rate: {formatRate(rate)}
-          </p>
-        </CardContent>
-      </Card>
+      <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/40 px-4 py-5 text-center">
+        <p className="text-[11px] font-medium uppercase tracking-wider text-emerald-600/70 dark:text-emerald-400/70 mb-1">
+          Earned
+        </p>
+        <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-400 tabular-nums tracking-tight">
+          {formatCurrency(currentEarnings)}
+        </p>
+        <p className="text-[11px] text-muted-foreground mt-2">
+          {formatRate(rate)}
+        </p>
+      </div>
     </div>
   );
 }
