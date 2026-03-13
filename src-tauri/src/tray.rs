@@ -32,6 +32,7 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
             if let tauri::tray::TrayIconEvent::Click {
                 button: tauri::tray::MouseButton::Left,
                 button_state: tauri::tray::MouseButtonState::Up,
+                rect,
                 ..
             } = event
             {
@@ -40,6 +41,19 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                     if window.is_visible().unwrap_or(false) {
                         let _ = window.hide();
                     } else {
+                        // Position window centered below the tray icon
+                        if let Ok(win_size) = window.outer_size() {
+                            let scale = window.scale_factor().unwrap_or(1.0);
+                            let icon_pos = rect.position.to_logical::<f64>(scale);
+                            let icon_size = rect.size.to_logical::<f64>(scale);
+                            let win_w = win_size.width as f64 / scale;
+
+                            let x = icon_pos.x + (icon_size.width / 2.0) - (win_w / 2.0);
+                            let y = icon_pos.y + icon_size.height;
+                            let _ = window.set_position(
+                                tauri::LogicalPosition::new(x, y),
+                            );
+                        }
                         let _ = window.show();
                         let _ = window.set_focus();
                     }
