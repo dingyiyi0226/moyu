@@ -1,7 +1,52 @@
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { useAppStore, type BreakSession, type WorkInterval } from "@/store/appStore";
 import { useSalaryCalc } from "@/hooks/useSalaryCalc";
-import { LogIn, LogOut } from "lucide-react";
+import { LogIn, LogOut, Check, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+
+interface TimeFields { h: string; m: string; s: string }
+
+function tsToFields(ts: number): TimeFields {
+  const d = new Date(ts);
+  return {
+    h: String(d.getHours()).padStart(2, "0"),
+    m: String(d.getMinutes()).padStart(2, "0"),
+    s: String(d.getSeconds()).padStart(2, "0"),
+  };
+}
+
+function fieldsToTs(fields: TimeFields, refTs: number): number {
+  const d = new Date(refTs);
+  d.setHours(Number(fields.h), Number(fields.m), Number(fields.s), 0);
+  return d.getTime();
+}
+
+function TimeInput({ value, onChange }: { value: TimeFields; onChange: (v: TimeFields) => void }) {
+  const mRef = useRef<HTMLInputElement>(null);
+  const sRef = useRef<HTMLInputElement>(null);
+
+  function handleChange(field: keyof TimeFields, raw: string) {
+    const digits = raw.replace(/\D/g, "").slice(0, 2);
+    const next = { ...value, [field]: digits };
+    onChange(next);
+    if (digits.length === 2) {
+      if (field === "h") mRef.current?.focus();
+      else if (field === "m") sRef.current?.focus();
+    }
+  }
+
+  const cls = "h-6 w-7 px-0 text-center text-[12px] tabular-nums";
+
+  return (
+    <div className="flex items-center">
+      <Input value={value.h} onChange={(e) => handleChange("h", e.target.value)} className={cls} />
+      <span className="text-muted-foreground text-[12px] mx-px">:</span>
+      <Input ref={mRef} value={value.m} onChange={(e) => handleChange("m", e.target.value)} className={cls} />
+      <span className="text-muted-foreground text-[12px] mx-px">:</span>
+      <Input ref={sRef} value={value.s} onChange={(e) => handleChange("s", e.target.value)} className={cls} />
+    </div>
+  );
+}
 
 type TimelineEntry =
   | { kind: "clock-in"; time: number; id: string }
@@ -61,8 +106,16 @@ export function HistoryList({ todayOnly = false, filterDate }: { todayOnly?: boo
   const allWorkIntervals = useAppStore((s) => s.workIntervals);
   const removeSession = useAppStore((s) => s.removeSession);
   const removeWorkInterval = useAppStore((s) => s.removeWorkInterval);
+  const updateWorkIntervalStart = useAppStore((s) => s.updateWorkIntervalStart);
+  const updateWorkIntervalEnd = useAppStore((s) => s.updateWorkIntervalEnd);
+  const updateSession = useAppStore((s) => s.updateSession);
   const { formatCurrency } = useSalaryCalc();
   const [ctxMenu, setCtxMenu] = useState<CtxMenu>(null);
+  const [editing, setEditing] = useState<{
+    entry: TimelineEntry;
+    time: TimeFields;
+    endTime: TimeFields;
+  } | null>(null);
 
   const closeCtxMenu = useCallback(() => setCtxMenu(null), []);
 
@@ -94,6 +147,43 @@ export function HistoryList({ todayOnly = false, filterDate }: { todayOnly?: boo
       if (start != null) removeWorkInterval(start);
     }
     closeCtxMenu();
+  }
+
+  function handleEdit() {
+    if (!ctxMenu) return;
+    const { entry } = ctxMenu;
+    const zero: TimeFields = { h: "00", m: "00", s: "00" };
+    if (entry.kind === "break") {
+      setEditing({
+        entry,
+        time: tsToFields(entry.session.startTime),
+        endTime: tsToFields(entry.session.endTime),
+      });
+    } else {
+      setEditing({
+        entry,
+        time: tsToFields(entry.time),
+        endTime: zero,
+      });
+    }
+    closeCtxMenu();
+  }
+
+  function handleEditConfirm() {
+    if (!editing) return;
+    const { entry, time, endTime } = editing;
+    if (entry.kind === "clock-in") {
+      updateWorkIntervalStart(entry.time, fieldsToTs(time, entry.time));
+    } else if (entry.kind === "clock-out") {
+      updateWorkIntervalEnd(entry.time, fieldsToTs(time, entry.time));
+    } else {
+      updateSession(
+        entry.session.id,
+        fieldsToTs(time, entry.session.startTime),
+        fieldsToTs(endTime, entry.session.endTime),
+      );
+    }
+    setEditing(null);
   }
 
   const groupedByDay = useMemo((): DayGroup[] => {
@@ -160,6 +250,7 @@ export function HistoryList({ todayOnly = false, filterDate }: { todayOnly?: boo
               </div>
               {group.entries.map((entry) => {
                 if (entry.kind === "clock-in") {
+                  const isEditing = editing?.entry.kind === "clock-in" && editing.entry.id === entry.id;
                   return (
                     <div
                       key={entry.id}
@@ -167,13 +258,24 @@ export function HistoryList({ todayOnly = false, filterDate }: { todayOnly?: boo
                       className="flex items-center gap-1.5 py-1 text-[12px] text-blue-600 dark:text-blue-400 cursor-default"
                     >
                       <LogIn className="size-3" />
-                      <span>{fmtTime(entry.time)}</span>
-                      <span className="text-muted-foreground">Clock In</span>
+                      {isEditing ? (
+                        <>
+                          <TimeInput value={editing.time} onChange={(v) => setEditing({ ...editing, time: v })} />
+                          <button onClick={handleEditConfirm} className="text-emerald-600 hover:text-emerald-500"><Check className="size-3" /></button>
+                          <button onClick={() => setEditing(null)} className="text-muted-foreground hover:text-foreground"><X className="size-3" /></button>
+                        </>
+                      ) : (
+                        <>
+                          <span>{fmtTime(entry.time)}</span>
+                          <span className="text-muted-foreground">Clock In</span>
+                        </>
+                      )}
                     </div>
                   );
                 }
 
                 if (entry.kind === "clock-out") {
+                  const isEditing = editing?.entry.kind === "clock-out" && editing.entry.id === entry.id;
                   return (
                     <div
                       key={entry.id}
@@ -181,13 +283,24 @@ export function HistoryList({ todayOnly = false, filterDate }: { todayOnly?: boo
                       className="flex items-center gap-1.5 py-1 text-[12px] text-orange-600 dark:text-orange-400 cursor-default"
                     >
                       <LogOut className="size-3" />
-                      <span>{fmtTime(entry.time)}</span>
-                      <span className="text-muted-foreground">Clock Out</span>
+                      {isEditing ? (
+                        <>
+                          <TimeInput value={editing.time} onChange={(v) => setEditing({ ...editing, time: v })} />
+                          <button onClick={handleEditConfirm} className="text-emerald-600 hover:text-emerald-500"><Check className="size-3" /></button>
+                          <button onClick={() => setEditing(null)} className="text-muted-foreground hover:text-foreground"><X className="size-3" /></button>
+                        </>
+                      ) : (
+                        <>
+                          <span>{fmtTime(entry.time)}</span>
+                          <span className="text-muted-foreground">Clock Out</span>
+                        </>
+                      )}
                     </div>
                   );
                 }
 
                 const { session } = entry;
+                const isEditing = editing?.entry.kind === "break" && editing.entry.session.id === session.id;
                 const totalSec = Math.round(
                   (session.endTime - session.startTime) / 1000,
                 );
@@ -201,12 +314,28 @@ export function HistoryList({ todayOnly = false, filterDate }: { todayOnly?: boo
                     onContextMenu={(e) => handleContextMenu(e, entry)}
                     className="flex items-center justify-between py-1 text-[12px] cursor-default"
                   >
-                    <span className="text-muted-foreground">
-                      {fmtTime(session.startTime)} &middot; {duration}
-                    </span>
-                    <span className="tabular-nums text-foreground/80">
-                      {formatCurrency(session.earnings)}
-                    </span>
+                    {isEditing ? (
+                      <>
+                        <div className="flex items-center gap-1">
+                          <TimeInput value={editing.time} onChange={(v) => setEditing({ ...editing, time: v })} />
+                          <span className="text-muted-foreground">–</span>
+                          <TimeInput value={editing.endTime} onChange={(v) => setEditing({ ...editing, endTime: v })} />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button onClick={handleEditConfirm} className="text-emerald-600 hover:text-emerald-500"><Check className="size-3" /></button>
+                          <button onClick={() => setEditing(null)} className="text-muted-foreground hover:text-foreground"><X className="size-3" /></button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-muted-foreground">
+                          {fmtTime(session.startTime)} &middot; {duration}
+                        </span>
+                        <span className="tabular-nums text-foreground/80">
+                          {formatCurrency(session.earnings)}
+                        </span>
+                      </>
+                    )}
                   </div>
                 );
               })}
@@ -220,6 +349,12 @@ export function HistoryList({ todayOnly = false, filterDate }: { todayOnly?: boo
           className="fixed z-50 min-w-[100px] rounded-md border bg-popover shadow-md py-1"
           style={{ top: ctxMenu.y, left: ctxMenu.x }}
         >
+          <button
+            onClick={handleEdit}
+            className="w-full px-3 py-1 text-left text-[12px] hover:bg-accent cursor-default"
+          >
+            Edit
+          </button>
           <button
             onClick={handleDelete}
             className="w-full px-3 py-1 text-left text-[12px] text-destructive hover:bg-accent cursor-default"

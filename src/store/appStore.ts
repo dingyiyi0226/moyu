@@ -77,6 +77,9 @@ export interface AppState {
   addSession: (session: BreakSession) => void;
   removeSession: (id: string) => void;
   removeWorkInterval: (start: number) => void;
+  updateWorkIntervalStart: (oldStart: number, newStart: number) => void;
+  updateWorkIntervalEnd: (oldEnd: number, newEnd: number) => void;
+  updateSession: (id: string, startTime: number, endTime: number) => void;
   setDailySchedule: (dateKey: string, schedule: DaySchedule) => void;
 
   loadFromDisk: () => Promise<void>;
@@ -244,6 +247,36 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   removeWorkInterval: (start) => {
     set((prev) => ({ workIntervals: prev.workIntervals.filter((iv) => iv.start !== start) }));
+    get().saveToDisk();
+  },
+
+  updateWorkIntervalStart: (oldStart, newStart) => {
+    set((prev) => ({
+      workIntervals: prev.workIntervals.map((iv) =>
+        iv.start === oldStart ? { ...iv, start: newStart } : iv,
+      ),
+    }));
+    get().saveToDisk();
+  },
+
+  updateWorkIntervalEnd: (oldEnd, newEnd) => {
+    set((prev) => ({
+      workIntervals: prev.workIntervals.map((iv) =>
+        iv.end === oldEnd ? { ...iv, end: newEnd } : iv,
+      ),
+    }));
+    get().saveToDisk();
+  },
+
+  updateSession: (id, startTime, endTime) => {
+    const state = get();
+    const durationSec = (endTime - startTime) / 1000;
+    const earnings = durationSec * perSecondRate(state.salary, state.schedule);
+    set((prev) => ({
+      sessions: prev.sessions.map((s) =>
+        s.id === id ? { ...s, startTime, endTime, earnings } : s,
+      ),
+    }));
     get().saveToDisk();
   },
 
