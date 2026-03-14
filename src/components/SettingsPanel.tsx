@@ -4,7 +4,9 @@ import {
   useAppStore,
   perSecondRate,
   weeklyWorkHours,
+  CURRENCIES,
   DEFAULT_SCHEDULE,
+  type Currency,
   type SalaryPeriod,
   type DaySchedule,
 } from "@/store/appStore";
@@ -49,13 +51,27 @@ export function SettingsPanel() {
     };
   }, [salary, schedule]);
 
+  const fmtPreview = useMemo(() => {
+    const fmt = (n: number, maxFrac = 0) =>
+      new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: salary.currency,
+        maximumFractionDigits: maxFrac,
+      }).format(n);
+    return { short: (n: number) => fmt(n), precise: (n: number) => fmt(n, 4) };
+  }, [salary.currency]);
+
   const handleAmountChange = (value: string) => {
     const numAmount = parseFloat(value) || 0;
-    setSalary({ amount: numAmount, period: salary.period });
+    setSalary({ ...salary, amount: numAmount });
   };
 
   const handlePeriodChange = (period: SalaryPeriod) => {
-    setSalary({ amount: salary.amount, period });
+    setSalary({ ...salary, period });
+  };
+
+  const handleCurrencyChange = (currency: Currency) => {
+    setSalary({ ...salary, currency });
   };
 
   const toggleDay = (day: number) => {
@@ -92,7 +108,7 @@ export function SettingsPanel() {
       {/* Row 1: Large annual salary */}
       <div className="text-center">
         <div className="text-2xl font-semibold tabular-nums">
-          ${preview.annual.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+          {fmtPreview.short(preview.annual)}
         </div>
         <div className="text-[10px] text-muted-foreground mt-0.5">annual salary</div>
       </div>
@@ -101,20 +117,20 @@ export function SettingsPanel() {
       <div className="flex items-baseline justify-center gap-4">
         <div className="text-center">
           <span className="text-sm font-medium tabular-nums">
-            ${preview.monthly.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+            {fmtPreview.short(preview.monthly)}
           </span>
           <span className="text-[10px] text-muted-foreground ml-1">/ month</span>
         </div>
         <div className="text-center">
           <span className="text-sm font-medium tabular-nums">
-            ${preview.perSecond.toFixed(4)}
+            {fmtPreview.precise(preview.perSecond)}
           </span>
           <span className="text-[10px] text-muted-foreground ml-1">/ second</span>
         </div>
       </div>
 
-      {/* Row 3: Input + period dropdown */}
-      <div className="flex items-center gap-2">
+      {/* Row 3: Input + currency + period */}
+      <div className="flex items-center justify-center gap-2">
         <input
           id="salary"
           type="number"
@@ -123,6 +139,17 @@ export function SettingsPanel() {
           onChange={(e) => handleAmountChange(e.target.value)}
           className="w-24 shrink-0 h-9 rounded-lg border border-input bg-transparent px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:ring-1 focus:ring-foreground/10"
         />
+        <select
+          value={salary.currency}
+          onChange={(e) => handleCurrencyChange(e.target.value as Currency)}
+          className="h-9 rounded-lg border border-input bg-transparent px-2 text-sm outline-none transition-colors focus:border-foreground/30 focus:ring-1 focus:ring-foreground/10"
+        >
+          {CURRENCIES.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
         <select
           value={salary.period}
           onChange={(e) => handlePeriodChange(e.target.value as SalaryPeriod)}

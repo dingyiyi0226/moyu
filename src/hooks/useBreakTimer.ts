@@ -26,7 +26,8 @@ export function useBreakTimer() {
     // Throttle tray title updates to ~1/sec
     if (now - lastTrayUpdate.current >= 1000) {
       lastTrayUpdate.current = now;
-      updateTrayTitle(`$${earnings.toFixed(2)}`);
+      const sym = new Intl.NumberFormat("en-US", { style: "currency", currency: salary.currency }).formatToParts(0).find(p => p.type === "currency")?.value ?? "$";
+      updateTrayTitle(`${sym}${earnings.toFixed(2)}`);
     }
 
     rafRef.current = requestAnimationFrame(tick);

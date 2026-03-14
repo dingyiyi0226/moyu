@@ -3,9 +3,13 @@ import { load } from "@tauri-apps/plugin-store";
 
 export type SalaryPeriod = "annual" | "monthly" | "hourly";
 
+export const CURRENCIES = ["USD", "EUR", "TWD", "GBP", "JPY", "KRW", "CAD", "AUD"] as const;
+export type Currency = (typeof CURRENCIES)[number];
+
 export interface SalaryConfig {
   amount: number;
   period: SalaryPeriod;
+  currency: Currency;
 }
 
 export interface DaySchedule {
@@ -137,7 +141,7 @@ export function getDayScheduleForDate(
 const STORE_FILE = "moyu-data.json";
 
 export const useAppStore = create<AppState>((set, get) => ({
-  salary: { amount: 0, period: "annual" },
+  salary: { amount: 0, period: "annual", currency: "USD" },
   schedule: DEFAULT_SCHEDULE,
   dailySchedules: {},
   workIntervals: [],
@@ -233,13 +237,18 @@ export const useAppStore = create<AppState>((set, get) => ({
   loadFromDisk: async () => {
     try {
       const store = await load(STORE_FILE, { defaults: {}, autoSave: false });
-      const salary = await store.get<SalaryConfig>("salary");
+      const rawSalary = await store.get<Partial<SalaryConfig>>("salary");
       const sessions = await store.get<BreakSession[]>("sessions");
       const schedule = await store.get<WorkSchedule>("schedule");
       const workIntervals = await store.get<WorkInterval[]>("workIntervals");
       const dailySchedules = await store.get<Record<string, DaySchedule>>("dailySchedules");
+      const salary: SalaryConfig = {
+        amount: rawSalary?.amount ?? 0,
+        period: rawSalary?.period ?? "annual",
+        currency: rawSalary?.currency ?? "USD",
+      };
       set({
-        salary: salary ?? { amount: 0, period: "annual" },
+        salary,
         sessions: sessions ?? [],
         schedule: schedule ?? DEFAULT_SCHEDULE,
         dailySchedules: dailySchedules ?? {},
