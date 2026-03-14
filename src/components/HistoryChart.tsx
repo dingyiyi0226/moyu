@@ -219,9 +219,15 @@ function toPercent(hour: number, schedStart: number, schedEnd: number): number {
 export function DailyChart({
   sessions,
   todayOnly = false,
+  fixedDate,
+  onPrev,
+  onNext,
 }: {
   sessions: BreakSession[];
   todayOnly?: boolean;
+  fixedDate?: Date;
+  onPrev?: () => void;
+  onNext?: () => void;
 }) {
   const schedule = useAppStore((s) => s.schedule);
   const dailySchedules = useAppStore((s) => s.dailySchedules);
@@ -229,11 +235,11 @@ export function DailyChart({
   const [dayOffset, setDayOffset] = useState(0);
 
   const effectiveOffset = todayOnly ? 0 : dayOffset;
-  const targetDate = getOffsetDate(effectiveOffset);
-  const isToday = effectiveOffset === 0;
+  const targetDate = fixedDate ?? getOffsetDate(effectiveOffset);
 
   const now = new Date();
   const nowH = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
+  const isToday = targetDate.toDateString() === now.toDateString();
 
   const timeline = useMemo(() => {
     const dayIntervals = getWorkIntervalsForDate(allWorkIntervals, targetDate);
@@ -257,6 +263,18 @@ export function DailyChart({
       {todayOnly ? (
         <div className="flex items-center justify-center mb-3">
           <span className="text-[11px] font-medium text-muted-foreground">Today</span>
+        </div>
+      ) : fixedDate ? (
+        <div className="flex items-center justify-between mb-3">
+          <button onClick={onPrev} className={navBtnClass}>
+            <ChevronLeft className="size-3.5" />
+          </button>
+          <span className="text-[11px] font-medium text-muted-foreground">
+            {isToday ? "Today" : fixedDate.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}
+          </span>
+          <button onClick={onNext} disabled={isToday} className={navBtnClass}>
+            <ChevronRight className="size-3.5" />
+          </button>
         </div>
       ) : (
         <div className="flex items-center justify-between mb-3">
@@ -377,9 +395,11 @@ export function DailyChart({
 export function WeeklyChart({
   sessions,
   formatCurrency,
+  onBarClick,
 }: {
   sessions: BreakSession[];
   formatCurrency: (n: number) => string;
+  onBarClick?: (date: Date) => void;
 }) {
   const [weekOffset, setWeekOffset] = useState(0);
 
@@ -419,11 +439,14 @@ export function WeeklyChart({
             Math.round((bar.durationSec / maxDuration) * BAR_HEIGHT),
             3,
           );
+          const [y, m, d] = bar.key.split("-").map(Number);
+          const barDate = new Date(y, m - 1, d);
           return (
             <div
               key={bar.key}
-              className="group relative"
+              className="group relative cursor-pointer"
               style={{ width: 30 }}
+              onClick={() => onBarClick?.(barDate)}
             >
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10">
                 <div className="bg-foreground text-background text-[10px] rounded px-1.5 py-0.5 whitespace-nowrap">

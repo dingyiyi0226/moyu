@@ -56,7 +56,7 @@ function isSameDay(ts: number, ref: Date): boolean {
 
 type CtxMenu = { x: number; y: number; entry: TimelineEntry } | null;
 
-export function HistoryList({ todayOnly = false }: { todayOnly?: boolean } = {}) {
+export function HistoryList({ todayOnly = false, filterDate }: { todayOnly?: boolean; filterDate?: Date } = {}) {
   const allSessions = useAppStore((s) => s.sessions);
   const allWorkIntervals = useAppStore((s) => s.workIntervals);
   const removeSession = useAppStore((s) => s.removeSession);
@@ -98,11 +98,12 @@ export function HistoryList({ todayOnly = false }: { todayOnly?: boolean } = {})
 
   const groupedByDay = useMemo((): DayGroup[] => {
     const today = new Date();
-    const sessions = todayOnly
-      ? allSessions.filter((s) => isSameDay(s.startTime, today))
+    const refDate = filterDate ?? (todayOnly ? today : null);
+    const sessions = refDate
+      ? allSessions.filter((s) => isSameDay(s.startTime, refDate))
       : allSessions;
-    const workIntervals = todayOnly
-      ? allWorkIntervals.filter((iv) => isSameDay(iv.start, today))
+    const workIntervals = refDate
+      ? allWorkIntervals.filter((iv) => isSameDay(iv.start, refDate))
       : allWorkIntervals;
 
     const entries = buildTimelineEntries(workIntervals, sessions);
@@ -122,7 +123,7 @@ export function HistoryList({ todayOnly = false }: { todayOnly?: boolean } = {})
         0,
       ),
     }));
-  }, [allSessions, allWorkIntervals, todayOnly]);
+  }, [allSessions, allWorkIntervals, todayOnly, filterDate]);
 
   if (allSessions.length === 0 && allWorkIntervals.length === 0) {
     return (

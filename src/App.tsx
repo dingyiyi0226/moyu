@@ -71,6 +71,7 @@ function App() {
   const sessions = useAppStore((s) => s.sessions);
   const [showSettings, setShowSettings] = useState(false);
   const [tab, setTab] = useState<Tab>("today");
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const { formatCurrency } = useSalaryCalc();
 
   useSystemEvents();
@@ -144,9 +145,24 @@ function App() {
               <>
                 <MonthlySummary />
                 <div className="h-px bg-border mx-4" />
-                <WeeklyChart sessions={sessions} formatCurrency={formatCurrency} />
-                <div className="h-px bg-border mx-4" />
-                <HistoryList />
+                {selectedDay ? (
+                  <>
+                    <DailyChart
+                      sessions={sessions}
+                      fixedDate={selectedDay}
+                      onPrev={() => { const d = new Date(selectedDay); d.setDate(d.getDate() - 1); setSelectedDay(d); }}
+                      onNext={() => { const d = new Date(selectedDay); d.setDate(d.getDate() + 1); setSelectedDay(d); }}
+                    />
+                    <div className="h-px bg-border mx-4" />
+                    <HistoryList filterDate={selectedDay} />
+                  </>
+                ) : (
+                  <>
+                    <WeeklyChart sessions={sessions} formatCurrency={formatCurrency} onBarClick={setSelectedDay} />
+                    <div className="h-px bg-border mx-4" />
+                    <HistoryList />
+                  </>
+                )}
               </>
             )}
           </div>
@@ -154,11 +170,11 @@ function App() {
           {/* Tab bar */}
           <div className="h-px bg-border" />
           <div className="flex items-center justify-center gap-4 py-1">
-            <button className={tabBtnClass(tab === "today")} onClick={() => setTab("today")}>
+            <button className={tabBtnClass(tab === "today")} onClick={() => { setTab("today"); setSelectedDay(null); }}>
               <Clock className="size-3" />
               Today
             </button>
-            <button className={tabBtnClass(tab === "summary")} onClick={() => setTab("summary")}>
+            <button className={tabBtnClass(tab === "summary")} onClick={() => { setTab("summary"); setSelectedDay(null); }}>
               <BarChart3 className="size-3" />
               Summary
             </button>
