@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Pencil, Check } from "lucide-react";
 import {
   useAppStore,
+  perSecondRate,
+  weeklyWorkHours,
   DEFAULT_SCHEDULE,
   type SalaryPeriod,
   type DaySchedule,
@@ -35,6 +37,17 @@ export function SettingsPanel() {
     ...DEFAULT_SCHEDULE.days,
     ...schedule.days,
   }));
+
+  const preview = useMemo(() => {
+    const rate = perSecondRate(salary, schedule);
+    const hoursPerWeek = weeklyWorkHours(schedule);
+    const totalSecondsPerYear = hoursPerWeek * 52 * 3600;
+    return {
+      annual: rate * totalSecondsPerYear,
+      monthly: (rate * totalSecondsPerYear) / 12,
+      perSecond: rate,
+    };
+  }, [salary, schedule]);
 
   const handleAmountChange = (value: string) => {
     const numAmount = parseFloat(value) || 0;
@@ -76,42 +89,51 @@ export function SettingsPanel() {
   return (
     <div className="space-y-5">
       {/* ── Salary ─────────────────────────────────────────── */}
-      <div>
-        <label
-          htmlFor="salary"
-          className="block text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5"
-        >
-          Salary Amount
-        </label>
+      {/* Row 1: Large annual salary */}
+      <div className="text-center">
+        <div className="text-2xl font-semibold tabular-nums">
+          ${preview.annual.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+        </div>
+        <div className="text-[10px] text-muted-foreground mt-0.5">annual salary</div>
+      </div>
+
+      {/* Row 2: Monthly + per-second */}
+      <div className="flex items-baseline justify-center gap-4">
+        <div className="text-center">
+          <span className="text-sm font-medium tabular-nums">
+            ${preview.monthly.toLocaleString("en-US", { maximumFractionDigits: 0 })}
+          </span>
+          <span className="text-[10px] text-muted-foreground ml-1">/ month</span>
+        </div>
+        <div className="text-center">
+          <span className="text-sm font-medium tabular-nums">
+            ${preview.perSecond.toFixed(4)}
+          </span>
+          <span className="text-[10px] text-muted-foreground ml-1">/ second</span>
+        </div>
+      </div>
+
+      {/* Row 3: Input + period dropdown */}
+      <div className="flex items-center gap-2">
         <input
           id="salary"
           type="number"
-          placeholder="e.g. 100000"
+          placeholder="100000"
           defaultValue={salary.amount || ""}
           onChange={(e) => handleAmountChange(e.target.value)}
-          className="w-full h-9 rounded-lg border border-input bg-transparent px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:ring-1 focus:ring-foreground/10"
+          className="w-24 shrink-0 h-9 rounded-lg border border-input bg-transparent px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:ring-1 focus:ring-foreground/10"
         />
-      </div>
-
-      <div>
-        <label className="block text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5">
-          Pay Period
-        </label>
-        <div className="flex rounded-lg bg-muted p-0.5">
+        <select
+          value={salary.period}
+          onChange={(e) => handlePeriodChange(e.target.value as SalaryPeriod)}
+          className="h-9 rounded-lg border border-input bg-transparent px-2 text-sm outline-none transition-colors focus:border-foreground/30 focus:ring-1 focus:ring-foreground/10"
+        >
           {periods.map((p) => (
-            <button
-              key={p.value}
-              onClick={() => handlePeriodChange(p.value)}
-              className={`flex-1 rounded-md py-1.5 text-xs font-medium transition-all ${
-                salary.period === p.value
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
+            <option key={p.value} value={p.value}>
               {p.label}
-            </button>
+            </option>
           ))}
-        </div>
+        </select>
       </div>
 
       <div className="h-px bg-border" />
