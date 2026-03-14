@@ -99,6 +99,7 @@ export function HistoryList({ todayOnly = false }: { todayOnly?: boolean } = {})
     new Date(ts).toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
+      second: "2-digit",
       hour12: false,
     });
 
