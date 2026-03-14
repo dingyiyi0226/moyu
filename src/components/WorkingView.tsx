@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useAppStore, isCurrentlyWorking, perSecondRate, getDayScheduleForDate, getDateKey } from "@/store/appStore";
 import { useSalaryCalc } from "@/hooks/useSalaryCalc";
-import { Play, LogIn, LogOut, Plus, Coffee, Clock, CalendarClock } from "lucide-react";
+import { Play, LogIn, LogOut, PenLine, Coffee, Clock, CalendarClock } from "lucide-react";
 import { RangePicker } from "@/components/BreakPicker";
 
 function formatDuration(totalSeconds: number): string {
@@ -103,10 +103,10 @@ export function WorkingView() {
           )}
           <button
             onClick={() => setCustomPicker((v) => (v ? null : "choose"))}
-            className="flex items-center gap-0.5 px-1.5 py-1 rounded-lg text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            className="self-stretch flex items-center px-1.5 rounded-lg text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             title="Add custom entry"
           >
-            <Plus className="size-3" />
+            <PenLine className="size-3" />
           </button>
         </div>
       </div>
