@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useAppStore, type BreakSession, type WorkInterval } from "@/store/appStore";
+import { useAppStore, getDayScheduleForDate, type BreakSession, type WorkInterval } from "@/store/appStore";
 import { useSalaryCalc } from "@/hooks/useSalaryCalc";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -20,7 +20,9 @@ function formatDuration(totalSec: number): string {
 }
 
 function formatHour(h: number): string {
-  return `${String(h).padStart(2, "0")}:00`;
+  const hours = Math.floor(h);
+  const mins = Math.round((h - hours) * 60);
+  return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
 }
 
 /** Get a Date offset by `days` from today, at midnight */
@@ -222,6 +224,7 @@ export function DailyChart({
   todayOnly?: boolean;
 }) {
   const schedule = useAppStore((s) => s.schedule);
+  const dailySchedules = useAppStore((s) => s.dailySchedules);
   const allWorkIntervals = useAppStore((s) => s.workIntervals);
   const [dayOffset, setDayOffset] = useState(0);
 
@@ -235,14 +238,17 @@ export function DailyChart({
   const timeline = useMemo(() => {
     const dayIntervals = getWorkIntervalsForDate(allWorkIntervals, targetDate);
     const daySessions = getBreakSessionsForDate(sessions, targetDate);
+    const daySchedule = getDayScheduleForDate(targetDate, schedule, dailySchedules);
+    const schedStart = daySchedule.startMinute / 60;
+    const schedEnd = daySchedule.endMinute / 60;
     return buildDayTimeline(
-      schedule.startHour,
-      schedule.endHour,
+      schedStart,
+      schedEnd,
       dayIntervals,
       daySessions,
       isToday ? nowH : undefined,
     );
-  }, [allWorkIntervals, sessions, targetDate, schedule, isToday, nowH]);
+  }, [allWorkIntervals, sessions, targetDate, schedule, dailySchedules, isToday, nowH]);
 
   const pct = (h: number) => toPercent(h, timeline.axisStart, timeline.axisEnd);
 

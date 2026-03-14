@@ -8,16 +8,32 @@ export interface SalaryConfig {
   period: SalaryPeriod;
 }
 
-export interface WorkSchedule {
-  workDays: number[]; // 0=Sun, 1=Mon, ..., 6=Sat
-  startHour: number; // 0-23
-  endHour: number; // 0-23
+export interface DaySchedule {
+  enabled: boolean;
+  startMinute: number; // minutes from midnight, e.g. 540 = 09:00
+  endMinute: number; // minutes from midnight, e.g. 1080 = 18:00
 }
 
+export interface WorkSchedule {
+  days: Record<number, DaySchedule>; // keys 0-6 (0=Sun, 1=Mon, ..., 6=Sat)
+}
+
+const defaultDay = (enabled: boolean): DaySchedule => ({
+  enabled,
+  startMinute: 540, // 09:00
+  endMinute: 1080, // 18:00
+});
+
 export const DEFAULT_SCHEDULE: WorkSchedule = {
-  workDays: [1, 2, 3, 4, 5], // Mon-Fri
-  startHour: 9,
-  endHour: 18,
+  days: {
+    0: defaultDay(false), // Sun
+    1: defaultDay(true), // Mon
+    2: defaultDay(true), // Tue
+    3: defaultDay(true), // Wed
+    4: defaultDay(true), // Thu
+    5: defaultDay(true), // Fri
+    6: defaultDay(false), // Sat
+  },
 };
 
 export interface BreakSession {
@@ -39,6 +55,9 @@ export interface AppState {
   schedule: WorkSchedule;
   setSchedule: (schedule: WorkSchedule) => void;
 
+  /** Per-date schedule snapshots, keyed by "YYYY-MM-DD". */
+  dailySchedules: Record<string, DaySchedule>;
+
   workIntervals: WorkInterval[]; // today's clock-in/out intervals
   clockIn: (at?: number) => void;
   clockOut: (at?: number) => void;
@@ -57,16 +76,23 @@ export interface AppState {
   saveToDisk: () => Promise<void>;
 }
 
+/** Total work hours per week based on the schedule */
+export function weeklyWorkHours(schedule: WorkSchedule): number {
+  return Object.values(schedule.days)
+    .filter((d) => d.enabled)
+    .reduce((sum, d) => sum + (d.endMinute - d.startMinute) / 60, 0);
+}
+
 export function perSecondRate(salary: SalaryConfig, schedule?: WorkSchedule): number {
   const { amount, period } = salary;
   const s = schedule ?? DEFAULT_SCHEDULE;
-  const hoursPerDay = s.endHour - s.startHour;
-  const workDaysPerYear = s.workDays.length * 52;
+  const hoursPerWeek = weeklyWorkHours(s);
+  const hoursPerYear = hoursPerWeek * 52;
   switch (period) {
     case "annual":
-      return amount / (workDaysPerYear * hoursPerDay * 3600);
+      return hoursPerYear > 0 ? amount / (hoursPerYear * 3600) : 0;
     case "monthly":
-      return (amount * 12) / (workDaysPerYear * hoursPerDay * 3600);
+      return hoursPerYear > 0 ? (amount * 12) / (hoursPerYear * 3600) : 0;
     case "hourly":
       return amount / 3600;
   }
@@ -75,8 +101,10 @@ export function perSecondRate(salary: SalaryConfig, schedule?: WorkSchedule): nu
 export function isWithinWorkSchedule(schedule: WorkSchedule): boolean {
   const now = new Date();
   const day = now.getDay();
-  const hour = now.getHours();
-  return schedule.workDays.includes(day) && hour >= schedule.startHour && hour < schedule.endHour;
+  const daySchedule = schedule.days[day];
+  if (!daySchedule?.enabled) return false;
+  const minuteOfDay = now.getHours() * 60 + now.getMinutes();
+  return minuteOfDay >= daySchedule.startMinute && minuteOfDay < daySchedule.endMinute;
 }
 
 /** Returns true if the user is currently working: clocked in (last interval open), or within schedule. */
@@ -90,11 +118,28 @@ export function isCurrentlyWorking(
   return isWithinWorkSchedule(schedule);
 }
 
+function getDateKey(ts: number): string {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/** Get the schedule for a specific date: use daily snapshot if available, else fall back to weekday template. */
+export function getDayScheduleForDate(
+  date: Date,
+  schedule: WorkSchedule,
+  dailySchedules: Record<string, DaySchedule>,
+): DaySchedule {
+  const key = getDateKey(date.getTime());
+  if (dailySchedules[key]) return dailySchedules[key];
+  return schedule.days[date.getDay()] ?? DEFAULT_SCHEDULE.days[date.getDay()];
+}
+
 const STORE_FILE = "moyu-data.json";
 
 export const useAppStore = create<AppState>((set, get) => ({
   salary: { amount: 0, period: "annual" },
   schedule: DEFAULT_SCHEDULE,
+  dailySchedules: {},
   workIntervals: [],
   isOnBreak: false,
   currentBreakStart: null,
@@ -117,7 +162,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     const intervals = state.workIntervals;
     // Only add new interval if not currently clocked in
     if (intervals.length === 0 || intervals[intervals.length - 1].end !== null) {
-      set({ workIntervals: [...intervals, { start: ts, end: null }] });
+      const dateKey = getDateKey(ts);
+      const updates: Partial<AppState> = {
+        workIntervals: [...intervals, { start: ts, end: null }],
+      };
+      // Snapshot today's schedule on first clock-in
+      if (!state.dailySchedules[dateKey]) {
+        const day = new Date(ts).getDay();
+        const template = state.schedule.days[day] ?? DEFAULT_SCHEDULE.days[day];
+        updates.dailySchedules = { ...state.dailySchedules, [dateKey]: { ...template } };
+      }
+      set(updates);
       get().saveToDisk();
     }
   },
@@ -182,10 +237,12 @@ export const useAppStore = create<AppState>((set, get) => ({
       const sessions = await store.get<BreakSession[]>("sessions");
       const schedule = await store.get<WorkSchedule>("schedule");
       const workIntervals = await store.get<WorkInterval[]>("workIntervals");
+      const dailySchedules = await store.get<Record<string, DaySchedule>>("dailySchedules");
       set({
         salary: salary ?? { amount: 0, period: "annual" },
         sessions: sessions ?? [],
         schedule: schedule ?? DEFAULT_SCHEDULE,
+        dailySchedules: dailySchedules ?? {},
         workIntervals: workIntervals ?? [],
       });
     } catch (e) {
@@ -200,6 +257,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       await store.set("salary", state.salary);
       await store.set("sessions", state.sessions);
       await store.set("schedule", state.schedule);
+      await store.set("dailySchedules", state.dailySchedules);
       await store.set("workIntervals", state.workIntervals);
       await store.save();
     } catch (e) {
