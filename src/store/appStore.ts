@@ -77,6 +77,7 @@ export interface AppState {
   addSession: (session: BreakSession) => void;
   removeSession: (id: string) => void;
   removeWorkInterval: (start: number) => void;
+  setDailySchedule: (dateKey: string, schedule: DaySchedule) => void;
 
   loadFromDisk: () => Promise<void>;
   saveToDisk: () => Promise<void>;
@@ -124,7 +125,7 @@ export function isCurrentlyWorking(
   return isWithinWorkSchedule(schedule);
 }
 
-function getDateKey(ts: number): string {
+export function getDateKey(ts: number): string {
   const d = new Date(ts);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
@@ -243,6 +244,11 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   removeWorkInterval: (start) => {
     set((prev) => ({ workIntervals: prev.workIntervals.filter((iv) => iv.start !== start) }));
+    get().saveToDisk();
+  },
+
+  setDailySchedule: (dateKey, schedule) => {
+    set((prev) => ({ dailySchedules: { ...prev.dailySchedules, [dateKey]: schedule } }));
     get().saveToDisk();
   },
 

@@ -5,14 +5,18 @@ interface RangePickerProps {
   confirmClassName?: string;
   onConfirm: (startH: number, startM: number, endH: number, endM: number) => void;
   onCancel: () => void;
+  initialStartH?: number;
+  initialStartM?: number;
+  initialEndH?: number;
+  initialEndM?: number;
 }
 
-export function RangePicker({ confirmClassName, onConfirm, onCancel }: RangePickerProps) {
+export function RangePicker({ confirmClassName, onConfirm, onCancel, initialStartH, initialStartM, initialEndH, initialEndM }: RangePickerProps) {
   const now = new Date();
-  const [startH, setStartH] = useState(now.getHours());
-  const [startM, setStartM] = useState(0);
-  const [endH, setEndH] = useState(now.getHours());
-  const [endM, setEndM] = useState(now.getMinutes());
+  const [startH, setStartH] = useState(initialStartH ?? now.getHours());
+  const [startM, setStartM] = useState(initialStartM ?? 0);
+  const [endH, setEndH] = useState(initialEndH ?? now.getHours());
+  const [endM, setEndM] = useState(initialEndM ?? now.getMinutes());
 
   const numInput = (value: number, max: number, onChange: (v: number) => void) => (
     <input
