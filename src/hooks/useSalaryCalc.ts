@@ -2,7 +2,8 @@ import { useAppStore, perSecondRate } from "@/store/appStore";
 
 export function useSalaryCalc() {
   const salary = useAppStore((s) => s.salary);
-  const rate = perSecondRate(salary);
+  const schedule = useAppStore((s) => s.schedule);
+  const rate = perSecondRate(salary, schedule);
 
   const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat("en-US", {
