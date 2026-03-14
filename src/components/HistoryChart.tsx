@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useAppStore, getDayScheduleForDate, type BreakSession, type WorkInterval } from "@/store/appStore";
 import { useSalaryCalc } from "@/hooks/useSalaryCalc";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
 
 function getDateKey(timestamp: number): string {
   const d = new Date(timestamp);
@@ -233,6 +234,8 @@ export function DailyChart({
   const dailySchedules = useAppStore((s) => s.dailySchedules);
   const allWorkIntervals = useAppStore((s) => s.workIntervals);
   const [dayOffset, setDayOffset] = useState(0);
+  const [zoomMode, setZoomMode] = useState(false);
+  const [zoomRange, setZoomRange] = useState<[number, number] | null>(null);
 
   const effectiveOffset = todayOnly ? 0 : dayOffset;
   const targetDate = fixedDate ?? getOffsetDate(effectiveOffset);
@@ -256,7 +259,9 @@ export function DailyChart({
     );
   }, [allWorkIntervals, sessions, targetDate, schedule, dailySchedules, isToday, nowH]);
 
-  const pct = (h: number) => toPercent(h, timeline.axisStart, timeline.axisEnd);
+  const viewStart = zoomRange ? zoomRange[0] : timeline.axisStart;
+  const viewEnd = zoomRange ? zoomRange[1] : timeline.axisEnd;
+  const pct = (h: number) => toPercent(h, viewStart, viewEnd);
 
   return (
     <div className="px-4 py-3">
@@ -350,10 +355,10 @@ export function DailyChart({
       {/* Time labels below the bar */}
       <div className="relative h-4 mt-0.5">
         <span className="absolute left-0 text-[9px] text-muted-foreground">
-          {formatHour(timeline.axisStart)}
+          {formatHour(viewStart)}
         </span>
         <span className="absolute right-0 text-[9px] text-muted-foreground">
-          {formatHour(timeline.axisEnd)}
+          {formatHour(viewEnd)}
         </span>
         {isToday && nowH >= timeline.axisStart && nowH <= timeline.axisEnd && (
           <span
@@ -387,7 +392,49 @@ export function DailyChart({
               ),
             )}`}
         </span>
+        <button
+          className={`ml-auto p-0.5 rounded transition-colors ${
+            zoomMode
+              ? "text-foreground bg-muted"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted"
+          }`}
+          onClick={() => {
+            if (zoomMode) {
+              setZoomMode(false);
+              setZoomRange(null);
+            } else {
+              setZoomMode(true);
+              setZoomRange([timeline.axisStart, timeline.axisEnd]);
+            }
+          }}
+          title="Zoom time range"
+        >
+          <Search className="size-3" />
+        </button>
       </div>
+
+      {/* Zoom range slider */}
+      {zoomMode && zoomRange && (
+        <div className="flex items-center gap-2 mt-2">
+          <span className="text-[9px] text-muted-foreground w-8 text-right shrink-0">
+            {formatHour(zoomRange[0])}
+          </span>
+          <Slider
+            min={timeline.axisStart * 60}
+            max={timeline.axisEnd * 60}
+            step={5}
+            minStepsBetweenValues={3}
+            value={[zoomRange[0] * 60, zoomRange[1] * 60]}
+            onValueChange={(v) => {
+              const arr = v as number[];
+              setZoomRange([arr[0] / 60, arr[1] / 60]);
+            }}
+          />
+          <span className="text-[9px] text-muted-foreground w-8 shrink-0">
+            {formatHour(zoomRange[1])}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
