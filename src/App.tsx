@@ -92,7 +92,7 @@ function App() {
               Back
             </button>
           </div>
-          <SettingsPanel onClose={() => setShowSettings(false)} />
+          <SettingsPanel />
         </div>
       ) : (
         <>
