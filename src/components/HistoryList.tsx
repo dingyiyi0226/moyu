@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { useAppStore, type BreakSession, type WorkInterval } from "@/store/appStore";
 import { useSalaryCalc } from "@/hooks/useSalaryCalc";
 import { LogIn, LogOut } from "lucide-react";
@@ -54,10 +54,47 @@ function isSameDay(ts: number, ref: Date): boolean {
   );
 }
 
+type CtxMenu = { x: number; y: number; entry: TimelineEntry } | null;
+
 export function HistoryList({ todayOnly = false }: { todayOnly?: boolean } = {}) {
   const allSessions = useAppStore((s) => s.sessions);
   const allWorkIntervals = useAppStore((s) => s.workIntervals);
+  const removeSession = useAppStore((s) => s.removeSession);
+  const removeWorkInterval = useAppStore((s) => s.removeWorkInterval);
   const { formatCurrency } = useSalaryCalc();
+  const [ctxMenu, setCtxMenu] = useState<CtxMenu>(null);
+
+  const closeCtxMenu = useCallback(() => setCtxMenu(null), []);
+
+  useEffect(() => {
+    if (!ctxMenu) return;
+    const handler = () => closeCtxMenu();
+    window.addEventListener("click", handler);
+    window.addEventListener("contextmenu", handler);
+    return () => {
+      window.removeEventListener("click", handler);
+      window.removeEventListener("contextmenu", handler);
+    };
+  }, [ctxMenu, closeCtxMenu]);
+
+  function handleContextMenu(e: React.MouseEvent, entry: TimelineEntry) {
+    e.preventDefault();
+    e.stopPropagation();
+    setCtxMenu({ x: e.clientX, y: e.clientY, entry });
+  }
+
+  function handleDelete() {
+    if (!ctxMenu) return;
+    const { entry } = ctxMenu;
+    if (entry.kind === "break") {
+      removeSession(entry.session.id);
+    } else {
+      // clock-in and clock-out both belong to the same WorkInterval
+      const start = entry.kind === "clock-in" ? entry.time : allWorkIntervals.find((iv) => iv.end === entry.time)?.start;
+      if (start != null) removeWorkInterval(start);
+    }
+    closeCtxMenu();
+  }
 
   const groupedByDay = useMemo((): DayGroup[] => {
     const today = new Date();
@@ -104,73 +141,92 @@ export function HistoryList({ todayOnly = false }: { todayOnly?: boolean } = {})
     });
 
   return (
-    <div className="max-h-[240px] overflow-y-auto">
-      {groupedByDay.map((group, groupIdx) => (
-        <div key={group.date}>
-          {groupIdx > 0 && <div className="h-px bg-border mx-4" />}
-          <div className="px-4 pt-3 pb-1">
-            <div className="flex items-baseline justify-between mb-1.5">
-              <span className="text-[11px] font-medium text-muted-foreground">
-                {group.date}
-              </span>
-              {group.breakTotal > 0 && (
-                <span className="text-[11px] font-semibold tabular-nums text-emerald-600">
-                  {formatCurrency(group.breakTotal)}
+    <>
+      <div className="max-h-[240px] overflow-y-auto">
+        {groupedByDay.map((group, groupIdx) => (
+          <div key={group.date}>
+            {groupIdx > 0 && <div className="h-px bg-border mx-4" />}
+            <div className="px-4 pt-3 pb-1">
+              <div className="flex items-baseline justify-between mb-1.5">
+                <span className="text-[11px] font-medium text-muted-foreground">
+                  {group.date}
                 </span>
-              )}
+                {group.breakTotal > 0 && (
+                  <span className="text-[11px] font-semibold tabular-nums text-emerald-600">
+                    {formatCurrency(group.breakTotal)}
+                  </span>
+                )}
+              </div>
+              {group.entries.map((entry) => {
+                if (entry.kind === "clock-in") {
+                  return (
+                    <div
+                      key={entry.id}
+                      onContextMenu={(e) => handleContextMenu(e, entry)}
+                      className="flex items-center gap-1.5 py-1 text-[12px] text-blue-600 dark:text-blue-400 cursor-default"
+                    >
+                      <LogIn className="size-3" />
+                      <span>{fmtTime(entry.time)}</span>
+                      <span className="text-muted-foreground">Clock In</span>
+                    </div>
+                  );
+                }
+
+                if (entry.kind === "clock-out") {
+                  return (
+                    <div
+                      key={entry.id}
+                      onContextMenu={(e) => handleContextMenu(e, entry)}
+                      className="flex items-center gap-1.5 py-1 text-[12px] text-orange-600 dark:text-orange-400 cursor-default"
+                    >
+                      <LogOut className="size-3" />
+                      <span>{fmtTime(entry.time)}</span>
+                      <span className="text-muted-foreground">Clock Out</span>
+                    </div>
+                  );
+                }
+
+                const { session } = entry;
+                const totalSec = Math.round(
+                  (session.endTime - session.startTime) / 1000,
+                );
+                const m = Math.floor(totalSec / 60);
+                const s = totalSec % 60;
+                const duration = m > 0 ? `${m}m ${s}s` : `${s}s`;
+
+                return (
+                  <div
+                    key={session.id}
+                    onContextMenu={(e) => handleContextMenu(e, entry)}
+                    className="flex items-center justify-between py-1 text-[12px] cursor-default"
+                  >
+                    <span className="text-muted-foreground">
+                      {fmtTime(session.startTime)} &middot; {duration}
+                    </span>
+                    <span className="tabular-nums text-foreground/80">
+                      {formatCurrency(session.earnings)}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-            {group.entries.map((entry) => {
-              if (entry.kind === "clock-in") {
-                return (
-                  <div
-                    key={entry.id}
-                    className="flex items-center gap-1.5 py-1 text-[12px] text-blue-600 dark:text-blue-400"
-                  >
-                    <LogIn className="size-3" />
-                    <span>{fmtTime(entry.time)}</span>
-                    <span className="text-muted-foreground">Clock In</span>
-                  </div>
-                );
-              }
-
-              if (entry.kind === "clock-out") {
-                return (
-                  <div
-                    key={entry.id}
-                    className="flex items-center gap-1.5 py-1 text-[12px] text-orange-600 dark:text-orange-400"
-                  >
-                    <LogOut className="size-3" />
-                    <span>{fmtTime(entry.time)}</span>
-                    <span className="text-muted-foreground">Clock Out</span>
-                  </div>
-                );
-              }
-
-              const { session } = entry;
-              const totalSec = Math.round(
-                (session.endTime - session.startTime) / 1000,
-              );
-              const m = Math.floor(totalSec / 60);
-              const s = totalSec % 60;
-              const duration = m > 0 ? `${m}m ${s}s` : `${s}s`;
-
-              return (
-                <div
-                  key={session.id}
-                  className="flex items-center justify-between py-1 text-[12px]"
-                >
-                  <span className="text-muted-foreground">
-                    {fmtTime(session.startTime)} &middot; {duration}
-                  </span>
-                  <span className="tabular-nums text-foreground/80">
-                    {formatCurrency(session.earnings)}
-                  </span>
-                </div>
-              );
-            })}
           </div>
+        ))}
+      </div>
+
+      {ctxMenu && (
+        <div
+          className="fixed z-50 min-w-[100px] rounded-md border bg-popover shadow-md py-1"
+          style={{ top: ctxMenu.y, left: ctxMenu.x }}
+        >
+          <button
+            onClick={handleDelete}
+            className="w-full px-3 py-1 text-left text-[12px] text-destructive hover:bg-accent cursor-default"
+          >
+            Delete
+          </button>
         </div>
-      ))}
-    </div>
+      )}
+    </>
   );
 }

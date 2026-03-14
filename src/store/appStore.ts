@@ -75,6 +75,8 @@ export interface AppState {
 
   sessions: BreakSession[];
   addSession: (session: BreakSession) => void;
+  removeSession: (id: string) => void;
+  removeWorkInterval: (start: number) => void;
 
   loadFromDisk: () => Promise<void>;
   saveToDisk: () => Promise<void>;
@@ -231,6 +233,16 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   addSession: (session) => {
     set((prev) => ({ sessions: [...prev.sessions, session] }));
+    get().saveToDisk();
+  },
+
+  removeSession: (id) => {
+    set((prev) => ({ sessions: prev.sessions.filter((s) => s.id !== id) }));
+    get().saveToDisk();
+  },
+
+  removeWorkInterval: (start) => {
+    set((prev) => ({ workIntervals: prev.workIntervals.filter((iv) => iv.start !== start) }));
     get().saveToDisk();
   },
 
