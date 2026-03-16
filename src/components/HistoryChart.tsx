@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { useAppStore, getDayScheduleForDate, type BreakSession, type WorkInterval } from "@/store/appStore";
-import { useSalaryCalc } from "@/hooks/useSalaryCalc";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts";
+import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
 
 function getDateKey(timestamp: number): string {
   const d = new Date(timestamp);
@@ -127,12 +128,14 @@ export function buildDayTimeline(
 interface BarData {
   key: string;
   label: string;
-  durationSec: number;
+  breakSec: number;
+  workSec: number;
   earnings: number;
 }
 
 function aggregateWeekly(
   sessions: BreakSession[],
+  workIntervals: WorkInterval[],
   weekOffset: number,
 ): BarData[] {
   const today = new Date();
@@ -146,15 +149,25 @@ function aggregateWeekly(
     date.setDate(sunday.getDate() + i);
     const dateKey = getDateKey(date.getTime());
 
-    let durationSec = 0;
+    let breakSec = 0;
     let earnings = 0;
     for (const s of sessions) {
       if (getDateKey(s.startTime) === dateKey) {
-        durationSec += Math.round((s.endTime - s.startTime) / 1000);
+        breakSec += Math.round((s.endTime - s.startTime) / 1000);
         earnings += s.earnings;
       }
     }
-    return { key: dateKey, label, durationSec, earnings };
+
+    let workSec = 0;
+    const dayIntervals = getWorkIntervalsForDate(workIntervals, date);
+    for (const iv of dayIntervals) {
+      const end = iv.end ?? Date.now();
+      workSec += Math.round((end - iv.start) / 1000);
+    }
+    // Net working time = clocked-in time minus break time
+    workSec = Math.max(0, workSec - breakSec);
+
+    return { key: dateKey, label, breakSec, workSec, earnings };
   });
 }
 
@@ -207,8 +220,6 @@ function getBreakSessionsForDate(
 
 const navBtnClass =
   "p-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-30 disabled:pointer-events-none";
-
-const BAR_HEIGHT = 80;
 
 /** Convert fractional hour to % position within the schedule bar */
 function toPercent(hour: number, schedStart: number, schedEnd: number): number {
@@ -439,26 +450,110 @@ export function DailyChart({
   );
 }
 
+const weeklyChartConfig = {
+  work: {
+    label: "Work",
+    color: "oklch(0.707 0.165 254.624)",
+  },
+  break: {
+    label: "Break",
+    color: "oklch(0.765 0.177 163.223)",
+  },
+} satisfies ChartConfig;
+
+function WeeklyTooltip({ active, payload }: {
+  active?: boolean;
+  payload?: Array<{ dataKey: string; value: number; color: string }>;
+}) {
+  if (!active || !payload?.length) return null;
+  const visible = payload.filter(p => p.value > 0);
+  if (visible.length === 0) return null;
+  return (
+    <div className="rounded-lg bg-foreground text-background text-[10px] px-2 py-1.5 shadow-md space-y-0.5">
+      {visible.map((p) => (
+        <div key={p.dataKey} className="flex items-center gap-1.5">
+          <span
+            className="inline-block size-2 rounded-sm"
+            style={{ background: p.color }}
+          />
+          <span>{p.dataKey === "work" ? "Work" : "Break"}</span>
+          <span className="font-medium">{formatDuration(p.value)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function formatTickDuration(sec: number): string {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  if (h > 0) return `${h}h`;
+  return `${m}m`;
+}
+
 export function WeeklyChart({
   sessions,
-  formatCurrency,
   onBarClick,
 }: {
   sessions: BreakSession[];
-  formatCurrency: (n: number) => string;
   onBarClick?: (date: Date) => void;
 }) {
+  const allWorkIntervals = useAppStore((s) => s.workIntervals);
   const [weekOffset, setWeekOffset] = useState(0);
+  const [hiddenKeys, setHiddenKeys] = useState<Set<string>>(new Set());
 
   const bars = useMemo(
-    () => aggregateWeekly(sessions, weekOffset),
-    [sessions, weekOffset],
+    () => aggregateWeekly(sessions, allWorkIntervals, weekOffset),
+    [sessions, allWorkIntervals, weekOffset],
   );
-  const maxDuration = Math.max(...bars.map((b) => b.durationSec), 1);
+
+  const yTicks = useMemo(() => {
+    const MAX_TICKS = 5;
+    const maxSec = Math.max(
+      ...bars.map((b) =>
+        (hiddenKeys.has("work") ? 0 : b.workSec) +
+        (hiddenKeys.has("break") ? 0 : b.breakSec)
+      ),
+      1,
+    );
+    // Base step: 1h if >4h, 30m if >2h, 10m otherwise
+    let step =
+      maxSec > 4 * 3600 ? 3600 :
+      maxSec > 2 * 3600 ? 1800 :
+      600;
+    // If too many ticks, double the step until it fits
+    while (Math.ceil(maxSec / step) + 1 > MAX_TICKS) {
+      step *= 2;
+    }
+    const ceil = Math.ceil(maxSec / step) * step;
+    const ticks: number[] = [];
+    for (let v = 0; v <= ceil; v += step) ticks.push(v);
+    return { ticks, domain: [0, ceil] as [number, number] };
+  }, [bars, hiddenKeys]);
+
+  const chartData = useMemo(
+    () =>
+      bars.map((bar) => ({
+        label: bar.label,
+        key: bar.key,
+        work: hiddenKeys.has("work") ? 0 : bar.workSec,
+        break: hiddenKeys.has("break") ? 0 : bar.breakSec,
+      })),
+    [bars, hiddenKeys],
+  );
+
+  const toggleKey = (key: string) => {
+    setHiddenKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   return (
     <div className="px-4 py-3">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-2">
         <button
           onClick={() => setWeekOffset((o) => o - 1)}
           className={navBtnClass}
@@ -477,47 +572,73 @@ export function WeeklyChart({
         </button>
       </div>
 
-      <div
-        className="flex items-end justify-center gap-1.5"
-        style={{ height: BAR_HEIGHT }}
-      >
-        {bars.map((bar) => {
-          const h = Math.max(
-            Math.round((bar.durationSec / maxDuration) * BAR_HEIGHT),
-            3,
-          );
-          const [y, m, d] = bar.key.split("-").map(Number);
-          const barDate = new Date(y, m - 1, d);
-          return (
-            <div
-              key={bar.key}
-              className="group relative cursor-pointer"
-              style={{ width: 30 }}
-              onClick={() => onBarClick?.(barDate)}
-            >
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10">
-                <div className="bg-foreground text-background text-[10px] rounded px-1.5 py-0.5 whitespace-nowrap">
-                  {formatDuration(bar.durationSec)} &middot;{" "}
-                  {formatCurrency(bar.earnings)}
-                </div>
-              </div>
-              <div
-                className="w-full rounded-sm bg-emerald-400/80 dark:bg-emerald-500/60"
-                style={{ height: h }}
-              />
-            </div>
-          );
-        })}
-      </div>
-      <div className="flex justify-center gap-1.5 mt-1">
-        {bars.map((bar) => (
-          <div
-            key={bar.key}
-            className="text-center text-[9px] text-muted-foreground truncate"
-            style={{ width: 30 }}
+      <ChartContainer config={weeklyChartConfig} className="h-[100px] w-full">
+        <BarChart
+          data={chartData}
+          barSize={14}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          onClick={(state: any) => {
+            const key = state?.activePayload?.[0]?.payload?.key as string | undefined;
+            if (key && onBarClick) {
+              const [y, m, d] = key.split("-").map(Number);
+              onBarClick(new Date(y, m - 1, d));
+            }
+          }}
+        >
+          <CartesianGrid vertical={false} strokeDasharray="3 3" syncWithTicks />
+          <XAxis
+            dataKey="label"
+            tickLine={false}
+            axisLine={false}
+            tick={{ fontSize: 9 }}
+          />
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            tick={{ fontSize: 8 }}
+            tickFormatter={formatTickDuration}
+            width={28}
+            domain={yTicks.domain}
+            ticks={yTicks.ticks}
+            interval={0}
+          />
+          <Tooltip
+            content={<WeeklyTooltip />}
+            cursor={{ fill: "var(--color-muted)", opacity: 0.5 }}
+          />
+          <Bar
+            dataKey="work"
+            stackId="a"
+            fill="var(--color-work)"
+            radius={[0, 0, 0, 0]}
+          />
+          <Bar
+            dataKey="break"
+            stackId="a"
+            fill="var(--color-break)"
+            radius={[2, 2, 0, 0]}
+          />
+        </BarChart>
+      </ChartContainer>
+
+      {/* Legend toggles */}
+      <div className="flex items-center gap-3 -mt-1">
+        {(["work", "break"] as const).map((key) => (
+          <button
+            key={key}
+            className={`flex items-center gap-1 transition-opacity ${
+              hiddenKeys.has(key) ? "opacity-40" : "opacity-100"
+            }`}
+            onClick={() => toggleKey(key)}
           >
-            {bar.label}
-          </div>
+            <span
+              className="inline-block size-2 rounded-sm"
+              style={{ background: weeklyChartConfig[key].color }}
+            />
+            <span className="text-[9px] text-muted-foreground">
+              {weeklyChartConfig[key].label}
+            </span>
+          </button>
         ))}
       </div>
     </div>
@@ -526,7 +647,6 @@ export function WeeklyChart({
 
 export function HistoryChart() {
   const sessions = useAppStore((s) => s.sessions);
-  const { formatCurrency } = useSalaryCalc();
 
   if (sessions.length === 0) return null;
 
@@ -534,7 +654,7 @@ export function HistoryChart() {
     <>
       <DailyChart sessions={sessions} />
       <div className="h-px bg-border mx-4" />
-      <WeeklyChart sessions={sessions} formatCurrency={formatCurrency} />
+      <WeeklyChart sessions={sessions} />
     </>
   );
 }

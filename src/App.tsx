@@ -72,8 +72,6 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [tab, setTab] = useState<Tab>("today");
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
-  const { formatCurrency } = useSalaryCalc();
-
   useSystemEvents();
 
   useEffect(() => {
@@ -158,7 +156,7 @@ function App() {
                   </>
                 ) : (
                   <>
-                    <WeeklyChart sessions={sessions} formatCurrency={formatCurrency} onBarClick={setSelectedDay} />
+                    <WeeklyChart sessions={sessions} onBarClick={setSelectedDay} />
                     <div className="h-px bg-border mx-4" />
                     <HistoryList />
                   </>
