@@ -67,6 +67,22 @@ yarn tauri build
 
 The built app will be in `src-tauri/target/release/bundle/`.
 
+### Release
+
+Bump the version, which auto-syncs `tauri.conf.json` and `Cargo.toml`, creates a commit, and tags it:
+
+```bash
+yarn version --patch   # 0.0.3 → 0.0.4
+yarn version --minor   # 0.0.3 → 0.1.0
+yarn version --major   # 0.0.3 → 1.0.0
+```
+
+Then push to trigger the release workflow:
+
+```bash
+git push && git push --tags
+```
+
 ## Tech Stack
 
 - **Frontend**: React 19, TypeScript, TailwindCSS 4, Zustand
