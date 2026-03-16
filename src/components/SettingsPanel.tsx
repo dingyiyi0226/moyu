@@ -46,9 +46,13 @@ export function SettingsPanel() {
     const rate = perSecondRate(salary, schedule);
     const hoursPerWeek = weeklyWorkHours(schedule);
     const totalSecondsPerYear = hoursPerWeek * 52 * 3600;
+    const workDaysPerWeek = Object.values(schedule.days).filter((d) => d.enabled).length;
+    const avgDailyHours = workDaysPerWeek > 0 ? hoursPerWeek / workDaysPerWeek : 0;
     return {
       annual: rate * totalSecondsPerYear,
       monthly: (rate * totalSecondsPerYear) / 12,
+      daily: rate * avgDailyHours * 3600,
+      hourly: rate * 3600,
       perSecond: rate,
     };
   }, [salary, schedule]);
@@ -115,19 +119,19 @@ export function SettingsPanel() {
         <div className="text-[10px] text-muted-foreground mt-0.5">annual salary</div>
       </div>
 
-      {/* Row 2: Monthly + per-second */}
-      <div className="flex items-baseline justify-center gap-4">
-        <div className="text-center">
-          <span className="text-sm font-medium tabular-nums">
-            {fmtPreview.short(preview.monthly)}
-          </span>
-          <span className="text-[10px] text-muted-foreground ml-1">/ month</span>
+      {/* Rows 2+3: monthly/hourly | daily/per-second */}
+      <div className="flex justify-center gap-5">
+        <div className="grid grid-cols-[auto_auto] items-baseline gap-x-1 gap-y-0.5">
+          <span className="text-xs font-medium tabular-nums text-right">{fmtPreview.short(preview.monthly)}</span>
+          <span className="text-[10px] text-muted-foreground">/ month</span>
+          <span className="text-xs font-medium tabular-nums text-right">{fmtPreview.short(preview.hourly)}</span>
+          <span className="text-[10px] text-muted-foreground">/ hour</span>
         </div>
-        <div className="text-center">
-          <span className="text-sm font-medium tabular-nums">
-            {fmtPreview.precise(preview.perSecond)}
-          </span>
-          <span className="text-[10px] text-muted-foreground ml-1">/ second</span>
+        <div className="grid grid-cols-[auto_auto] items-baseline gap-x-1 gap-y-0.5">
+          <span className="text-xs font-medium tabular-nums text-right">{fmtPreview.short(preview.daily)}</span>
+          <span className="text-[10px] text-muted-foreground">/ day</span>
+          <span className="text-xs font-medium tabular-nums text-right">{fmtPreview.precise(preview.perSecond)}</span>
+          <span className="text-[10px] text-muted-foreground">/ second</span>
         </div>
       </div>
 
