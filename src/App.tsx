@@ -59,19 +59,15 @@ function WeeklySummary({ weekOffset }: { weekOffset: number }) {
   }, [weekOffset]);
 
   return (
-    <div className="px-4 py-3">
-      <div className="rounded-xl bg-muted/60 px-4 py-3">
-        <div className="flex items-start justify-between">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground leading-none">
-            {weekLabel}
-          </span>
-          <span className="text-xl font-semibold tabular-nums tracking-tight leading-none">
-            {formatCurrency(stats.earnings)}
-          </span>
-        </div>
-        <p className="text-[11px] text-muted-foreground mt-2">
-          Work {formatDuration(stats.workDuration)} &middot; Break {formatDuration(stats.breakDuration)}
-        </p>
+    <div className="px-4 py-3 text-center">
+      <div className="text-[10px] text-muted-foreground">
+        Your earnings {weekOffset === 0 ? "this week" : `in ${weekLabel}`}
+      </div>
+      <div className="text-2xl font-semibold tabular-nums mt-0.5">
+        {formatCurrency(stats.earnings)}
+      </div>
+      <div className="text-[10px] text-muted-foreground mt-0.5">
+        Work {formatDuration(stats.workDuration)} &middot; Break {formatDuration(stats.breakDuration)}
       </div>
     </div>
   );

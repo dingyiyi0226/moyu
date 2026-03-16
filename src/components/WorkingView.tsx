@@ -180,18 +180,16 @@ export function WorkingView() {
         />
       )}
 
-      <div className="rounded-xl bg-muted/60 px-4 py-3">
-        <div className="flex items-start justify-between">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground leading-none">
-            Today
-          </span>
-          <span className="text-xl font-semibold tabular-nums tracking-tight leading-none">
-            {formatCurrency(todayStats.earnings)}
-          </span>
+      <div className="text-center">
+        <div className="text-[10px] text-muted-foreground">
+          Your earnings today
         </div>
-        <p className="text-[11px] text-muted-foreground mt-2">
+        <div className="text-2xl font-semibold tabular-nums mt-0.5">
+          {formatCurrency(todayStats.earnings)}
+        </div>
+        <div className="text-[10px] text-muted-foreground mt-0.5">
           Work {formatDuration(todayStats.workDuration)} &middot; Break {formatDuration(todayStats.breakDuration)}
-        </p>
+        </div>
       </div>
     </div>
   );
