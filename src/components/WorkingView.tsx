@@ -94,7 +94,7 @@ export function WorkingView() {
           )}
           {working && (
             <button
-              onClick={() => setBreakStarted(Date.now())}
+              onClick={() => setBreakStarted(Date.now(), "manual")}
               className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60 transition-colors"
             >
               <Play className="size-3" />
@@ -151,6 +151,7 @@ export function WorkingView() {
                 startTime,
                 endTime,
                 earnings,
+                reason: "custom",
               });
             }
             setCustomPicker(null);
