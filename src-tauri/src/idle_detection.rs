@@ -51,5 +51,6 @@ pub fn start_idle_detection(app: AppHandle, timeout_secs: Arc<Mutex<u64>>) {
 
 #[tauri::command]
 pub fn set_idle_timeout(seconds: u64, timeout_secs: tauri::State<Arc<Mutex<u64>>>) {
+    println!("[IdleDetection] Idle timeout changed to {}s", seconds);
     *timeout_secs.lock().unwrap() = seconds;
 }

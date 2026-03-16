@@ -33,7 +33,7 @@ pub fn run() {
 
             screen_events::start_listening(app.handle().clone());
 
-            let timeout_arc: Arc<Mutex<u64>> = Arc::new(Mutex::new(30));
+            let timeout_arc: Arc<Mutex<u64>> = Arc::new(Mutex::new(60));
             app.manage(timeout_arc.clone());
             idle_detection::start_idle_detection(app.handle().clone(), timeout_arc);
 

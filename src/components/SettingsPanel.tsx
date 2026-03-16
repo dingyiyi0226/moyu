@@ -33,8 +33,9 @@ export function SettingsPanel() {
   const setSalary = useAppStore((s) => s.setSalary);
   const schedule = useAppStore((s) => s.schedule);
   const setSchedule = useAppStore((s) => s.setSchedule);
-  const idleTimeoutSec = useAppStore((s) => s.idleTimeoutSec);
+  const storeIdleTimeoutSec = useAppStore((s) => s.idleTimeoutSec);
   const setIdleTimeoutSec = useAppStore((s) => s.setIdleTimeoutSec);
+  const [idleInputValue, setIdleInputValue] = useState(storeIdleTimeoutSec);
 
   const [editing, setEditing] = useState(false);
   const [days, setDays] = useState<Record<number, DaySchedule>>(() => ({
@@ -315,13 +316,25 @@ export function SettingsPanel() {
         <div className="flex items-center gap-2 mt-2">
           <input
             type="number"
-            min={5}
-            max={600}
-            value={idleTimeoutSec}
-            onChange={(e) => setIdleTimeoutSec(Math.max(5, Number(e.target.value)))}
-            className="w-16 h-7 rounded-md border border-input bg-transparent px-2 text-xs outline-none transition-colors focus:border-foreground/30 focus:ring-1 focus:ring-foreground/10 text-center"
+            value={idleInputValue}
+            onChange={(e) => {
+              const val = Number(e.target.value);
+              setIdleInputValue(val);
+              if (val >= 10 && val <= 3600) {
+                setIdleTimeoutSec(val);
+              }
+            }}
+            className={`w-16 h-7 rounded-md border px-2 text-xs outline-none transition-colors focus:ring-1 focus:ring-foreground/10 text-center bg-transparent ${
+              idleInputValue >= 10 && idleInputValue <= 3600
+                ? "border-input focus:border-foreground/30"
+                : "border-red-500 text-red-400"
+            }`}
           />
-          <span className="text-xs text-muted-foreground">seconds without input starts a break</span>
+          <span className="text-xs text-muted-foreground">
+            {idleInputValue >= 10 && idleInputValue <= 3600
+              ? "seconds without input starts a break"
+              : "must be between 10 and 3600"}
+          </span>
         </div>
       </div>
     </div>

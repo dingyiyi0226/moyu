@@ -164,7 +164,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   currentBreakReason: null,
   currentEarnings: 0,
   sessions: [],
-  idleTimeoutSec: 30,
+  idleTimeoutSec: 60,
 
   setSalary: (salary) => {
     set({ salary });
@@ -319,7 +319,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         period: rawSalary?.period ?? "annual",
         currency: rawSalary?.currency ?? "USD",
       };
-      const resolvedIdleTimeout = idleTimeoutSec ?? 30;
+      const resolvedIdleTimeout = idleTimeoutSec ?? 60;
       set({
         salary,
         sessions: sessions ?? [],
