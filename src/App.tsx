@@ -5,7 +5,7 @@ import { BreakView } from "@/components/BreakView";
 import { WorkingView } from "@/components/WorkingView";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { HistoryList } from "@/components/HistoryList";
-import { DailyChart, WeeklyChart } from "@/components/HistoryChart";
+import { DailyChart, WeeklyChart, computeDayStats } from "@/components/HistoryChart";
 import { useSalaryCalc } from "@/hooks/useSalaryCalc";
 import { Settings, ChevronLeft, Clock, BarChart3 } from "lucide-react";
 
@@ -20,21 +20,28 @@ function formatDuration(totalSec: number): string {
 
 function MonthlySummary() {
   const sessions = useAppStore((s) => s.sessions);
+  const workIntervals = useAppStore((s) => s.workIntervals);
   const { formatCurrency } = useSalaryCalc();
 
   const stats = useMemo(() => {
     const now = new Date();
-    const monthSessions = sessions.filter((s) => {
-      const d = new Date(s.startTime);
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    });
-    const earnings = monthSessions.reduce((sum, s) => sum + s.earnings, 0);
-    const duration = monthSessions.reduce(
-      (sum, s) => sum + (s.endTime - s.startTime) / 1000,
-      0,
-    );
-    return { earnings, duration: Math.round(duration), count: monthSessions.length };
-  }, [sessions]);
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    // Iterate each day of the current month
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    let totalWorkSec = 0;
+    let totalBreakSec = 0;
+    let totalEarnings = 0;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = new Date(year, month, d);
+      if (date > now) break;
+      const day = computeDayStats(sessions, workIntervals, date);
+      totalWorkSec += day.workSec;
+      totalBreakSec += day.breakSec;
+      totalEarnings += day.earnings;
+    }
+    return { earnings: totalEarnings, workDuration: totalWorkSec, breakDuration: totalBreakSec };
+  }, [sessions, workIntervals]);
 
   const monthLabel = new Date().toLocaleDateString([], { month: "long", year: "numeric" });
 
@@ -50,7 +57,7 @@ function MonthlySummary() {
           </span>
         </div>
         <p className="text-[11px] text-muted-foreground mt-0.5">
-          {stats.count} break{stats.count !== 1 ? "s" : ""} &middot; {formatDuration(stats.duration)}
+          Work {formatDuration(stats.workDuration)} &middot; Break {formatDuration(stats.breakDuration)}
         </p>
       </div>
     </div>

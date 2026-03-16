@@ -3,6 +3,7 @@ import { useAppStore, isCurrentlyWorking, perSecondRate, getDayScheduleForDate, 
 import { useSalaryCalc } from "@/hooks/useSalaryCalc";
 import { Play, LogIn, LogOut, PenLine, Coffee, Clock, CalendarClock } from "lucide-react";
 import { RangePicker } from "@/components/BreakPicker";
+import { computeDayStats } from "@/components/HistoryChart";
 
 function formatDuration(totalSeconds: number): string {
   const h = Math.floor(totalSeconds / 3600);
@@ -43,21 +44,9 @@ export function WorkingView() {
 
   const todayStats = useMemo(() => {
     const today = new Date();
-    const todaySessions = sessions.filter((s) => {
-      const d = new Date(s.startTime);
-      return (
-        d.getDate() === today.getDate() &&
-        d.getMonth() === today.getMonth() &&
-        d.getFullYear() === today.getFullYear()
-      );
-    });
-    const earnings = todaySessions.reduce((sum, s) => sum + s.earnings, 0);
-    const duration = todaySessions.reduce(
-      (sum, s) => sum + (s.endTime - s.startTime) / 1000,
-      0,
-    );
-    return { earnings, duration, count: todaySessions.length };
-  }, [sessions]);
+    const stats = computeDayStats(sessions, workIntervals, today);
+    return { earnings: stats.earnings, breakDuration: stats.breakSec, workDuration: stats.workSec };
+  }, [sessions, workIntervals]);
 
   return (
     <div className="space-y-4">
@@ -201,7 +190,7 @@ export function WorkingView() {
           </span>
         </div>
         <p className="text-[11px] text-muted-foreground mt-0.5">
-          {todayStats.count} break{todayStats.count !== 1 ? "s" : ""} &middot; {formatDuration(todayStats.duration)}
+          Work {formatDuration(todayStats.workDuration)} &middot; Break {formatDuration(todayStats.breakDuration)}
         </p>
       </div>
     </div>

@@ -123,6 +123,37 @@ export function buildDayTimeline(
   return { axisStart: schedStart, axisEnd: schedEnd, workBands, breakBands };
 }
 
+// ── Per-day stats ─────────────────────────────────────────────────────
+
+export function computeDayStats(
+  sessions: BreakSession[],
+  workIntervals: WorkInterval[],
+  date: Date,
+): { breakSec: number; workSec: number; earnings: number; breakCount: number } {
+  const dateKey = getDateKey(date.getTime());
+
+  let breakSec = 0;
+  let earnings = 0;
+  let breakCount = 0;
+  for (const s of sessions) {
+    if (getDateKey(s.startTime) === dateKey) {
+      breakSec += Math.round((s.endTime - s.startTime) / 1000);
+      earnings += s.earnings;
+      breakCount++;
+    }
+  }
+
+  let workSec = 0;
+  const dayIntervals = getWorkIntervalsForDate(workIntervals, date);
+  for (const iv of dayIntervals) {
+    const end = iv.end ?? Date.now();
+    workSec += Math.round((end - iv.start) / 1000);
+  }
+  workSec = Math.max(0, workSec - breakSec);
+
+  return { breakSec, workSec, earnings, breakCount };
+}
+
 // ── Weekly aggregation ─────────────────────────────────────────────────
 
 interface BarData {
@@ -147,27 +178,8 @@ function aggregateWeekly(
   return WEEK_DAY_LABELS.map((label, i) => {
     const date = new Date(sunday);
     date.setDate(sunday.getDate() + i);
-    const dateKey = getDateKey(date.getTime());
-
-    let breakSec = 0;
-    let earnings = 0;
-    for (const s of sessions) {
-      if (getDateKey(s.startTime) === dateKey) {
-        breakSec += Math.round((s.endTime - s.startTime) / 1000);
-        earnings += s.earnings;
-      }
-    }
-
-    let workSec = 0;
-    const dayIntervals = getWorkIntervalsForDate(workIntervals, date);
-    for (const iv of dayIntervals) {
-      const end = iv.end ?? Date.now();
-      workSec += Math.round((end - iv.start) / 1000);
-    }
-    // Net working time = clocked-in time minus break time
-    workSec = Math.max(0, workSec - breakSec);
-
-    return { key: dateKey, label, breakSec, workSec, earnings };
+    const stats = computeDayStats(sessions, workIntervals, date);
+    return { key: getDateKey(date.getTime()), label, ...stats };
   });
 }
 
