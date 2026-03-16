@@ -33,6 +33,8 @@ export function SettingsPanel() {
   const setSalary = useAppStore((s) => s.setSalary);
   const schedule = useAppStore((s) => s.schedule);
   const setSchedule = useAppStore((s) => s.setSchedule);
+  const idleTimeoutSec = useAppStore((s) => s.idleTimeoutSec);
+  const setIdleTimeoutSec = useAppStore((s) => s.setIdleTimeoutSec);
 
   const [editing, setEditing] = useState(false);
   const [days, setDays] = useState<Record<number, DaySchedule>>(() => ({
@@ -296,6 +298,26 @@ export function SettingsPanel() {
               </div>
             );
           })}
+        </div>
+      </div>
+
+      <div className="h-px bg-border" />
+
+      {/* ── Idle Detection ─────────────────────────────────── */}
+      <div>
+        <label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          Idle Timeout
+        </label>
+        <div className="flex items-center gap-2 mt-2">
+          <input
+            type="number"
+            min={5}
+            max={600}
+            value={idleTimeoutSec}
+            onChange={(e) => setIdleTimeoutSec(Math.max(5, Number(e.target.value)))}
+            className="w-16 h-7 rounded-md border border-input bg-transparent px-2 text-xs outline-none transition-colors focus:border-foreground/30 focus:ring-1 focus:ring-foreground/10 text-center"
+          />
+          <span className="text-xs text-muted-foreground">seconds without input starts a break</span>
         </div>
       </div>
     </div>
