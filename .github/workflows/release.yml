@@ -13,6 +13,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -33,6 +35,13 @@ jobs:
         with:
           workspaces: src-tauri
 
+      - name: Generate release notes
+        id: notes
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --latest --strip header
+
       - name: Build and upload release
         uses: tauri-apps/tauri-action@v0
         env:
@@ -49,3 +58,4 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: ${{ github.ref_name }}
+          releaseBody: ${{ steps.notes.outputs.content }}
