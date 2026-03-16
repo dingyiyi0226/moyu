@@ -1,6 +1,6 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { useAppStore, perSecondRate } from "@/store/appStore";
+import { useAppStore, perSecondRate, getDateKey } from "@/store/appStore";
 
 function updateTrayTitle(title: string) {
   invoke("update_tray_title", { title }).catch(() => {});
@@ -13,8 +13,16 @@ export function useBreakTimer() {
   const schedule = useAppStore((s) => s.schedule);
   const updateCurrentEarnings = useAppStore((s) => s.updateCurrentEarnings);
   const currentEarnings = useAppStore((s) => s.currentEarnings);
+  const sessions = useAppStore((s) => s.sessions);
   const rafRef = useRef<number | null>(null);
   const lastTrayUpdate = useRef(0);
+
+  const completedTodayEarnings = useMemo(() => {
+    const todayKey = getDateKey(Date.now());
+    return sessions
+      .filter((s) => getDateKey(s.startTime) === todayKey)
+      .reduce((sum, s) => sum + s.earnings, 0);
+  }, [sessions]);
 
   const tick = useCallback(() => {
     if (!currentBreakStart) return;
@@ -27,11 +35,11 @@ export function useBreakTimer() {
     if (now - lastTrayUpdate.current >= 1000) {
       lastTrayUpdate.current = now;
       const sym = new Intl.NumberFormat("en-US", { style: "currency", currency: salary.currency }).formatToParts(0).find(p => p.type === "currency")?.value ?? "$";
-      updateTrayTitle(`${sym}${earnings.toFixed(2)}`);
+      updateTrayTitle(`${sym}${(completedTodayEarnings + earnings).toFixed(2)}`);
     }
 
     rafRef.current = requestAnimationFrame(tick);
-  }, [currentBreakStart, salary, schedule, updateCurrentEarnings]);
+  }, [currentBreakStart, salary, schedule, updateCurrentEarnings, completedTodayEarnings]);
 
   useEffect(() => {
     if (isOnBreak && currentBreakStart) {
