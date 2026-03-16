@@ -3,7 +3,7 @@ import { useAppStore, isCurrentlyWorking, perSecondRate, getDayScheduleForDate, 
 import { useSalaryCalc } from "@/hooks/useSalaryCalc";
 import { Play, LogIn, LogOut, PenLine, Coffee, Clock, CalendarClock } from "lucide-react";
 import { RangePicker } from "@/components/BreakPicker";
-import { computeDayStats } from "@/components/HistoryChart";
+import { computeDayStats } from "@/lib/chartHelpers";
 
 function formatDuration(totalSeconds: number): string {
   const h = Math.floor(totalSeconds / 3600);

@@ -1,7 +1,7 @@
 import { useAppStore } from "@/store/appStore";
 import { BreakView } from "@/components/BreakView";
 import { WorkingView } from "@/components/WorkingView";
-import { DailyChart } from "@/components/HistoryChart";
+import { DailyChart } from "@/components/DailyChart";
 import { HistoryList } from "@/components/HistoryList";
 
 export function TodayTab({ onOpenSettings }: { onOpenSettings: () => void }) {

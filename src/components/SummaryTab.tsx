@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { useAppStore } from "@/store/appStore";
 import { useSalaryCalc } from "@/hooks/useSalaryCalc";
-import { DailyChart, WeeklyChart, computeDayStats } from "@/components/HistoryChart";
+import { DailyChart } from "@/components/DailyChart";
+import { WeeklyChart } from "@/components/WeeklyChart";
+import { computeDayStats } from "@/lib/chartHelpers";
 import { HistoryList } from "@/components/HistoryList";
 
 function formatDuration(totalSec: number): string {
