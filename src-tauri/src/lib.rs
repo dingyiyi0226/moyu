@@ -15,7 +15,8 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_nspanel::init())
         .invoke_handler(tauri::generate_handler![
-            tray::update_tray_title,
+            tray::start_break_timer,
+            tray::stop_break_timer,
             idle_detection::set_idle_timeout,
         ])
         .setup(|app| {
@@ -32,6 +33,9 @@ pub fn run() {
             let timeout_arc: Arc<Mutex<u64>> = Arc::new(Mutex::new(30));
             app.manage(timeout_arc.clone());
             idle_detection::start_idle_detection(app.handle().clone(), timeout_arc);
+
+            let break_timer_state = Arc::new(Mutex::new(tray::BreakTimerState::new()));
+            app.manage(break_timer_state);
 
             Ok(())
         })

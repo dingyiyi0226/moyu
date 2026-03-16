@@ -1,3 +1,6 @@
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
@@ -6,6 +9,55 @@ use tauri::{
 
 #[cfg(target_os = "macos")]
 use tauri_nspanel::ManagerExt;
+
+pub struct BreakTimerConfig {
+    per_second_rate: f64,
+    completed_today: f64,
+    currency_symbol: String,
+    break_start_ms: u64,
+}
+
+pub struct BreakTimerState {
+    config: Option<BreakTimerConfig>,
+    generation: u64,
+}
+
+impl BreakTimerState {
+    pub fn new() -> Self {
+        Self {
+            config: None,
+            generation: 0,
+        }
+    }
+}
+
+fn run_timer(app: AppHandle, state: Arc<Mutex<BreakTimerState>>, gen: u64) {
+    loop {
+        thread::sleep(Duration::from_secs(1));
+
+        let title = {
+            let lock = state.lock().unwrap();
+            if lock.generation != gen {
+                return;
+            }
+            let Some(ref config) = lock.config else {
+                return;
+            };
+            let now_ms = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_millis() as u64;
+            let elapsed_sec = now_ms.saturating_sub(config.break_start_ms) as f64 / 1000.0;
+            let current = elapsed_sec * config.per_second_rate;
+            let total = config.completed_today + current;
+            format!("{}{:.2}", config.currency_symbol, total)
+        };
+
+        if let Some(tray) = app.tray_by_id("moyu-tray") {
+            let _ = tray.set_title(Some(&title));
+        }
+    }
+}
 
 pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
     let show_i = MenuItem::with_id(app, "show", "Show", true, None::<&str>)?;
@@ -109,12 +161,45 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
 }
 
 #[tauri::command]
-pub fn update_tray_title(app: AppHandle, title: String) {
+pub fn start_break_timer(
+    app: AppHandle,
+    state: tauri::State<Arc<Mutex<BreakTimerState>>>,
+    per_second_rate: f64,
+    completed_today: f64,
+    currency_symbol: String,
+    break_start_ms: u64,
+) {
+    let mut lock = state.lock().unwrap();
+    lock.generation += 1;
+    let gen = lock.generation;
+    lock.config = Some(BreakTimerConfig {
+        per_second_rate,
+        completed_today,
+        currency_symbol: currency_symbol.clone(),
+        break_start_ms,
+    });
+    drop(lock);
+
+    // Set title immediately (elapsed = 0, so total = completed_today)
     if let Some(tray) = app.tray_by_id("moyu-tray") {
-        let _ = tray.set_title(if title.is_empty() {
-            None
-        } else {
-            Some(&title)
-        });
+        let _ = tray.set_title(Some(&format!("{}{:.2}", currency_symbol, completed_today)));
+    }
+
+    let state_arc = state.inner().clone();
+    thread::spawn(move || run_timer(app, state_arc, gen));
+}
+
+#[tauri::command]
+pub fn stop_break_timer(
+    app: AppHandle,
+    state: tauri::State<Arc<Mutex<BreakTimerState>>>,
+) {
+    let mut lock = state.lock().unwrap();
+    lock.config = None;
+    lock.generation += 1;
+    drop(lock);
+
+    if let Some(tray) = app.tray_by_id("moyu-tray") {
+        let _ = tray.set_title(Some("Moyu"));
     }
 }
