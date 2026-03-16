@@ -308,6 +308,14 @@ export function HistoryList({ todayOnly = false, filterDate }: { todayOnly?: boo
                 const s = totalSec % 60;
                 const duration = m > 0 ? `${m}m ${s}s` : `${s}s`;
 
+                const reasonLabel: Record<string, string> = {
+                  manual: "manual",
+                  "screen-lock": "lock",
+                  idle: "idle",
+                  custom: "custom",
+                };
+                const label = session.reason ? reasonLabel[session.reason] : null;
+
                 return (
                   <div
                     key={session.id}
@@ -328,8 +336,13 @@ export function HistoryList({ todayOnly = false, filterDate }: { todayOnly?: boo
                       </>
                     ) : (
                       <>
-                        <span className="text-muted-foreground">
+                        <span className="text-muted-foreground flex items-center gap-1.5">
                           {fmtTime(session.startTime)} &middot; {duration}
+                          {label && (
+                            <span className="text-[10px] px-1 py-px rounded bg-muted text-muted-foreground/70 leading-none">
+                              {label}
+                            </span>
+                          )}
                         </span>
                         <span className="tabular-nums text-foreground/80">
                           {formatCurrency(session.earnings)}
