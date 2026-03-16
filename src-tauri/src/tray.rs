@@ -2,10 +2,12 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::{
-    menu::{Menu, MenuItem},
+    menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::TrayIconBuilder,
     AppHandle, Manager,
 };
+
+use crate::updater;
 
 #[cfg(target_os = "macos")]
 use tauri_nspanel::ManagerExt;
@@ -61,8 +63,10 @@ fn run_timer(app: AppHandle, state: Arc<Mutex<BreakTimerState>>, gen: u64) {
 
 pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
     let show_i = MenuItem::with_id(app, "show", "Show", true, None::<&str>)?;
+    let separator = PredefinedMenuItem::separator(app)?;
+    let update_i = MenuItem::with_id(app, "check_update", "Check for Update", true, None::<&str>)?;
     let quit_i = MenuItem::with_id(app, "quit", "Quit Moyu", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&show_i, &quit_i])?;
+    let menu = Menu::with_items(app, &[&show_i, &separator, &update_i, &quit_i])?;
 
     let _tray = TrayIconBuilder::with_id("moyu-tray")
         .icon(app.default_window_icon().unwrap().clone())
@@ -74,6 +78,9 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
         .on_menu_event(|app, event| match event.id.as_ref() {
             "quit" => {
                 app.exit(0);
+            }
+            "check_update" => {
+                updater::check_for_update(app);
             }
             "show" => {
                 #[cfg(target_os = "macos")]

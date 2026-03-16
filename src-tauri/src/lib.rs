@@ -1,6 +1,7 @@
 mod idle_detection;
 mod screen_events;
 mod tray;
+mod updater;
 
 #[cfg(target_os = "macos")]
 mod panel;
@@ -13,6 +14,8 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::new().build())
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_nspanel::init())
         .invoke_handler(tauri::generate_handler![
             tray::start_break_timer,
