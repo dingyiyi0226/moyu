@@ -6,12 +6,7 @@ mod macos {
     use std::os::raw::c_void;
     use std::time::{SystemTime, UNIX_EPOCH};
     use tauri::{AppHandle, Emitter};
-
-    #[derive(serde::Serialize, Clone)]
-    pub struct BreakStartPayload {
-        pub ts: u64,
-        pub reason: &'static str,
-    }
+    use crate::BreakStartPayload;
 
     extern "C" fn callback(
         _center: CFNotificationCenterRef,

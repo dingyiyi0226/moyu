@@ -9,6 +9,12 @@ mod panel;
 use std::sync::{Arc, Mutex};
 use tauri::Manager;
 
+#[derive(serde::Serialize, Clone)]
+pub(crate) struct BreakStartPayload {
+    pub ts: u64,
+    pub reason: &'static str,
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
