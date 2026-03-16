@@ -9,7 +9,7 @@ import {
   getWorkIntervalsForDate,
   getBreakSessionsForDate,
   toPercent,
-} from "@/lib/chartHelpers";
+} from "@/lib/timeUtils";
 
 // ── Timeline construction ──────────────────────────────────────────────
 

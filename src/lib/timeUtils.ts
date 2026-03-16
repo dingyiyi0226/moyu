@@ -1,17 +1,19 @@
-import type { BreakSession, WorkInterval } from "@/store/appStore";
-
-export function getDateKey(timestamp: number): string {
-  const d = new Date(timestamp);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
+import { type BreakSession, type WorkInterval, getDateKey } from "@/store/appStore";
 
 export function formatDuration(totalSec: number): string {
   const h = Math.floor(totalSec / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
-  const s = totalSec % 60;
+  const s = Math.floor(totalSec % 60);
   if (h > 0) return `${h}h ${m}m`;
   if (m > 0) return `${m}m ${s}s`;
   return `${s}s`;
+}
+
+/** Format seconds as MM:SS timer display */
+export function formatTimer(totalSec: number): string {
+  const m = Math.floor(totalSec / 60);
+  const s = Math.floor(totalSec % 60);
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 export function formatHour(h: number): string {

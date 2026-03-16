@@ -3,16 +3,7 @@ import { useAppStore, isCurrentlyWorking, perSecondRate, getDayScheduleForDate, 
 import { useSalaryCalc } from "@/hooks/useSalaryCalc";
 import { Play, LogIn, LogOut, PenLine, Coffee, Clock, CalendarClock } from "lucide-react";
 import { RangePicker } from "@/components/BreakPicker";
-import { computeDayStats } from "@/lib/chartHelpers";
-
-function formatDuration(totalSeconds: number): string {
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = Math.floor(totalSeconds % 60);
-  if (h > 0) return `${h}h ${m}m`;
-  if (m > 0) return `${m}m ${s}s`;
-  return `${s}s`;
-}
+import { computeDayStats, formatDuration } from "@/lib/timeUtils";
 
 function todayAt(hour: number, minute: number): number {
   const d = new Date();

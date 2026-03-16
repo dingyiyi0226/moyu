@@ -3,15 +3,8 @@ import { useAppStore } from "@/store/appStore";
 import { useSalaryCalc } from "@/hooks/useSalaryCalc";
 import { DailyChart } from "@/components/DailyChart";
 import { WeeklyChart } from "@/components/WeeklyChart";
-import { computeDayStats } from "@/lib/chartHelpers";
+import { computeDayStats, formatDuration } from "@/lib/timeUtils";
 import { HistoryList } from "@/components/HistoryList";
-
-function formatDuration(totalSec: number): string {
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  if (h > 0) return `${h}h ${m}m`;
-  return `${m}m`;
-}
 
 function WeeklySummary({ weekOffset }: { weekOffset: number }) {
   const sessions = useAppStore((s) => s.sessions);

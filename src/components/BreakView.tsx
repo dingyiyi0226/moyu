@@ -3,12 +3,7 @@ import { useBreakTimer } from "@/hooks/useBreakTimer";
 import { useSalaryCalc } from "@/hooks/useSalaryCalc";
 import { useAppStore } from "@/store/appStore";
 import { Square } from "lucide-react";
-
-function formatDuration(totalSeconds: number): string {
-  const m = Math.floor(totalSeconds / 60);
-  const s = totalSeconds % 60;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
+import { formatTimer } from "@/lib/timeUtils";
 
 export function BreakView() {
   const { currentEarnings, currentBreakStart } = useBreakTimer();
@@ -33,7 +28,7 @@ export function BreakView() {
             <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
           </span>
           <span className="text-xs font-medium text-emerald-600">
-            On Break &middot; {formatDuration(elapsed)}
+            On Break &middot; {formatTimer(elapsed)}
           </span>
         </div>
         <button
