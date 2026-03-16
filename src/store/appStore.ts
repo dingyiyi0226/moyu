@@ -201,6 +201,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   setBreakStarted: (timestamp) => {
+    if (get().isOnBreak) return;
     set({
       isOnBreak: true,
       currentBreakStart: timestamp,
