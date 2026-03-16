@@ -7,6 +7,12 @@ mod macos {
     use std::time::{SystemTime, UNIX_EPOCH};
     use tauri::{AppHandle, Emitter};
 
+    #[derive(serde::Serialize, Clone)]
+    pub struct BreakStartPayload {
+        pub ts: u64,
+        pub reason: &'static str,
+    }
+
     extern "C" fn callback(
         _center: CFNotificationCenterRef,
         observer: *mut c_void,
@@ -24,7 +30,7 @@ mod macos {
 
         if name_str == "com.apple.screenIsLocked" {
             println!("[moyu] Screen locked — break started");
-            let _ = app_handle.emit("break:started", timestamp);
+            let _ = app_handle.emit("break:started", BreakStartPayload { ts: timestamp, reason: "screen-lock" });
         } else if name_str == "com.apple.screenIsUnlocked" {
             println!("[moyu] Screen unlocked — break ended");
             let _ = app_handle.emit("break:ended", timestamp);

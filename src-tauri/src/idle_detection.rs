@@ -3,6 +3,12 @@ use std::thread;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 
+#[derive(serde::Serialize, Clone)]
+struct BreakStartPayload {
+    ts: u64,
+    reason: &'static str,
+}
+
 #[cfg(target_os = "macos")]
 #[link(name = "CoreGraphics", kind = "framework")]
 extern "C" {
@@ -29,7 +35,7 @@ pub fn start_idle_detection(app: AppHandle, timeout_secs: Arc<Mutex<u64>>) {
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap()
                     .as_millis() as u64;
-                let _ = app.emit("break:started", ts);
+                let _ = app.emit("break:started", BreakStartPayload { ts, reason: "idle" });
                 was_idle = true;
             } else if was_idle && idle < 1.0 {
                 let ts = std::time::SystemTime::now()
