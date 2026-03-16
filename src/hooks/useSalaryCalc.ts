@@ -6,12 +6,13 @@ export function useSalaryCalc() {
   const rate = perSecondRate(salary, schedule);
 
   const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat("en-US", {
+    const parts = new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: salary.currency,
       minimumFractionDigits: 2,
-      maximumFractionDigits: 4,
-    }).format(amount);
+      maximumFractionDigits: 2,
+    }).formatToParts(amount);
+    return parts.map((p) => (p.type === "currency" ? p.value + " " : p.value)).join("");
   };
 
   const formatRate = (perSec: number): string => {
