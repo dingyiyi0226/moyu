@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { load } from "@tauri-apps/plugin-store";
+import { invoke } from "@tauri-apps/api/core";
 
 export type SalaryPeriod = "annual" | "monthly" | "hourly";
 
@@ -72,6 +73,9 @@ export interface AppState {
   setBreakStarted: (timestamp: number) => void;
   setBreakEnded: (timestamp: number) => void;
   updateCurrentEarnings: (earnings: number) => void;
+
+  idleTimeoutSec: number;
+  setIdleTimeoutSec: (sec: number) => void;
 
   sessions: BreakSession[];
   addSession: (session: BreakSession) => void;
@@ -155,6 +159,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   currentBreakStart: null,
   currentEarnings: 0,
   sessions: [],
+  idleTimeoutSec: 30,
 
   setSalary: (salary) => {
     set({ salary });
@@ -163,6 +168,12 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setSchedule: (schedule) => {
     set({ schedule });
+    get().saveToDisk();
+  },
+
+  setIdleTimeoutSec: (sec) => {
+    set({ idleTimeoutSec: sec });
+    invoke("set_idle_timeout", { seconds: sec });
     get().saveToDisk();
   },
 
@@ -294,18 +305,22 @@ export const useAppStore = create<AppState>((set, get) => ({
       const schedule = await store.get<WorkSchedule>("schedule");
       const workIntervals = await store.get<WorkInterval[]>("workIntervals");
       const dailySchedules = await store.get<Record<string, DaySchedule>>("dailySchedules");
+      const idleTimeoutSec = await store.get<number>("idleTimeoutSec");
       const salary: SalaryConfig = {
         amount: rawSalary?.amount ?? 0,
         period: rawSalary?.period ?? "annual",
         currency: rawSalary?.currency ?? "USD",
       };
+      const resolvedIdleTimeout = idleTimeoutSec ?? 30;
       set({
         salary,
         sessions: sessions ?? [],
         schedule: schedule ?? DEFAULT_SCHEDULE,
         dailySchedules: dailySchedules ?? {},
         workIntervals: workIntervals ?? [],
+        idleTimeoutSec: resolvedIdleTimeout,
       });
+      invoke("set_idle_timeout", { seconds: resolvedIdleTimeout });
     } catch (e) {
       console.error("Failed to load store:", e);
     }
@@ -320,6 +335,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       await store.set("schedule", state.schedule);
       await store.set("dailySchedules", state.dailySchedules);
       await store.set("workIntervals", state.workIntervals);
+      await store.set("idleTimeoutSec", state.idleTimeoutSec);
       await store.save();
     } catch (e) {
       console.error("Failed to save store:", e);
