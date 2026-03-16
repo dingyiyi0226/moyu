@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { useAppStore, type BreakSession, type WorkInterval } from "@/store/appStore";
 import { useSalaryCalc } from "@/hooks/useSalaryCalc";
+import { formatTimestamp } from "@/lib/timeUtils";
 import { LogIn, LogOut, Check, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -223,14 +224,6 @@ export function HistoryList({ todayOnly = false, filterDate }: { todayOnly?: boo
     );
   }
 
-  const fmtTime = (ts: number) =>
-    new Date(ts).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    });
-
   return (
     <>
       <div className="max-h-[240px] overflow-y-auto">
@@ -266,7 +259,7 @@ export function HistoryList({ todayOnly = false, filterDate }: { todayOnly?: boo
                         </>
                       ) : (
                         <>
-                          <span>{fmtTime(entry.time)}</span>
+                          <span>{formatTimestamp(entry.time)}</span>
                           <span className="text-muted-foreground">Clock In</span>
                         </>
                       )}
@@ -291,7 +284,7 @@ export function HistoryList({ todayOnly = false, filterDate }: { todayOnly?: boo
                         </>
                       ) : (
                         <>
-                          <span>{fmtTime(entry.time)}</span>
+                          <span>{formatTimestamp(entry.time)}</span>
                           <span className="text-muted-foreground">Clock Out</span>
                         </>
                       )}
@@ -337,7 +330,7 @@ export function HistoryList({ todayOnly = false, filterDate }: { todayOnly?: boo
                     ) : (
                       <>
                         <span className="text-muted-foreground flex items-center gap-1.5">
-                          {fmtTime(session.startTime)} &middot; {duration}
+                          {formatTimestamp(session.startTime)} &middot; {duration}
                           {label && (
                             <span className="text-[10px] px-1 py-px rounded bg-muted text-muted-foreground/70 leading-none">
                               {label}

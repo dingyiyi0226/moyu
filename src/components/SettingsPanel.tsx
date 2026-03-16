@@ -10,6 +10,7 @@ import {
   type SalaryPeriod,
   type DaySchedule,
 } from "@/store/appStore";
+import { formatMinutes } from "@/lib/timeUtils";
 
 const periods: { value: SalaryPeriod; label: string }[] = [
   { value: "annual", label: "Annual" },
@@ -19,11 +20,6 @@ const periods: { value: SalaryPeriod; label: string }[] = [
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-function formatTime(minutes: number): string {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-}
 
 const selectClass =
   "h-7 rounded-md border border-input bg-transparent px-1 text-xs outline-none transition-colors focus:border-foreground/30 focus:ring-1 focus:ring-foreground/10 appearance-none text-center";
@@ -294,12 +290,12 @@ export function SettingsPanel() {
                     </div>
                   ) : (
                     <span className="text-xs text-muted-foreground">
-                      {formatTime(day.startMinute)} – {formatTime(day.endMinute)}
+                      {formatMinutes(day.startMinute)} – {formatMinutes(day.endMinute)}
                     </span>
                   )
                 ) : (
                   <span className="text-xs text-muted-foreground/40">
-                    {formatTime(day.startMinute)} – {formatTime(day.endMinute)}
+                    {formatMinutes(day.startMinute)} – {formatMinutes(day.endMinute)}
                   </span>
                 )}
               </div>

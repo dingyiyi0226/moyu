@@ -207,12 +207,6 @@ export function DailyChart({
           const width = pct(band.endH) - left;
           if (width <= 0) return null;
 
-          const fmtTime = (h: number) => {
-            const hours = Math.floor(h);
-            const mins = Math.round((h - hours) * 60);
-            return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
-          };
-
           return (
             <div
               key={band.id}
@@ -221,7 +215,7 @@ export function DailyChart({
             >
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10">
                 <div className="bg-foreground text-background text-[10px] rounded px-1.5 py-0.5 whitespace-nowrap">
-                  {fmtTime(band.startH)}–{fmtTime(band.endH)}
+                  {formatHour(band.startH)}–{formatHour(band.endH)}
                 </div>
               </div>
             </div>

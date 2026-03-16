@@ -16,10 +16,28 @@ export function formatTimer(totalSec: number): string {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
+/** Format fractional hour (e.g. 9.5) to "HH:MM" */
 export function formatHour(h: number): string {
   const hours = Math.floor(h);
   const mins = Math.round((h - hours) * 60);
   return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+}
+
+/** Format minutes-since-midnight to "HH:MM" */
+export function formatMinutes(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+/** Format a Unix timestamp to "HH:MM:SS" (24h, locale-aware) */
+export function formatTimestamp(ts: number): string {
+  return new Date(ts).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
 }
 
 export const navBtnClass =
