@@ -1,29 +1,50 @@
-# Moyu - Break Salary Tracker
+# Moyu — Break Salary Tracker
 
-Moyu (摸魚) is a macOS desktop app that tracks your breaks during work hours and calculates how much you've earned while away from your screen. It sits in your menu bar as a compact floating panel and automatically detects when you lock/unlock your screen.
+**Moyu (摸魚)** is a macOS menu bar app that tracks your breaks and shows you exactly how much you've earned while away from your screen — because your time has value, even when you're not working.
 
-## What It Does
-
-- **Automatic break detection** — monitors macOS screen lock/unlock events to start and stop break timers automatically
-- **Real-time earnings ticker** — shows how much money you're making per second while on break, based on your salary
-- **Manual clock in/out** — track your work sessions and add custom break or work entries
-- **Daily timeline chart** — visual breakdown of your work and break periods throughout the day, with zoom support
-- **Weekly summary** — bar chart of daily break earnings, click any day to drill into details
-- **Flexible salary config** — supports annual, monthly, or hourly input in 8 currencies (USD, EUR, TWD, GBP, JPY, KRW, CAD, AUD)
-- **Customizable work schedule** — set different hours for each day of the week, with per-date overrides
-- **Edit history** — right-click any entry to modify or delete it
+It floats as a compact panel in your menu bar, automatically detects screen locks, and ticks up your earnings in real time.
 
 ## Screenshots
 
-<!-- Add screenshots here -->
+<table>
+  <tr>
+    <td><img src="img/main-with-header.png" height="400"/></td>
+    <td><img src="img/summary.png" height="400"/></td>
+    <td><img src="img/settings.png" height="400"/></td>
+  </tr>
+</table>
 
-## Tech Stack
+## Features
 
-- **Frontend**: React 19, TypeScript, TailwindCSS 4, Zustand
-- **Backend**: Rust, Tauri 2
-- **macOS Integration**: Core Foundation APIs for screen lock detection, NSPanel for floating window, system tray
+- **Automatic break detection** — starts and stops timers when you lock/unlock your screen, or when the system detects you've gone idle
+- **Real-time earnings ticker** — live per-second counter shown in the panel and in the menu bar title while on break
+- **Break reason tagging** — each break is labeled as screen-lock, idle, manual, or custom
+- **Daily timeline & weekly summary** — visual charts of your work and break periods; click any day in the weekly view to drill in
+- **Flexible salary config** — annual, monthly, or hourly input across 8 currencies, with a live breakdown down to the per-second rate
 
-## Getting Started
+## How to Use
+
+1. Open Settings and enter your salary and work schedule
+2. Click **Clock In** when you start working
+3. Lock your screen to take a break — the timer starts automatically
+4. Unlock your screen — the break is recorded with your earnings
+5. Check the **Today** tab for a daily breakdown, or **Summary** for weekly trends
+
+You can also manually add break or work entries, and right-click any history item to edit or delete it.
+
+## First Launch: macOS Quarantine
+
+macOS may block the app on first open since it's not from the App Store. Run this command to remove the quarantine flag:
+
+```bash
+xattr -rd com.apple.quarantine /Applications/Moyu.app
+```
+
+Then open the app normally.
+
+---
+
+## Development
 
 ### Prerequisites
 
@@ -31,13 +52,10 @@ Moyu (摸魚) is a macOS desktop app that tracks your breaks during work hours a
 - [Rust](https://www.rust-lang.org/tools/install)
 - [Tauri CLI prerequisites](https://v2.tauri.app/start/prerequisites/)
 
-### Development
+### Run locally
 
 ```bash
-# Install dependencies
 yarn install
-
-# Run in development mode
 yarn tauri dev
 ```
 
@@ -49,15 +67,8 @@ yarn tauri build
 
 The built app will be in `src-tauri/target/release/bundle/`.
 
-## How It Works
+## Tech Stack
 
-1. Set your salary and work schedule in Settings
-2. Clock in when you start working
-3. Lock your screen when you take a break — the app automatically starts tracking
-4. Unlock your screen — the break is recorded with earnings calculated
-5. Check the Today tab for your daily breakdown or the Summary tab for weekly trends
-
-## Platform Support
-
-Currently macOS only. The automatic screen lock detection uses native macOS APIs. Tauri supports cross-platform builds, but the screen event integration would need platform-specific implementations for Windows/Linux.
-
+- **Frontend**: React 19, TypeScript, TailwindCSS 4, Zustand
+- **Backend**: Rust, Tauri 2
+- **macOS Integration**: Core Foundation (screen lock events), Core Graphics (idle detection), NSPanel (floating window)
