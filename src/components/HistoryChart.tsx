@@ -506,12 +506,16 @@ function formatTickDuration(sec: number): string {
 export function WeeklyChart({
   sessions,
   onBarClick,
+  weekOffset,
+  onWeekOffsetChange,
 }: {
   sessions: BreakSession[];
   onBarClick?: (date: Date) => void;
+  weekOffset: number;
+  onWeekOffsetChange: (offset: number) => void;
 }) {
   const allWorkIntervals = useAppStore((s) => s.workIntervals);
-  const [weekOffset, setWeekOffset] = useState(0);
+  const setWeekOffset = onWeekOffsetChange;
   const [hiddenKeys, setHiddenKeys] = useState<Set<string>>(new Set());
 
   const bars = useMemo(
@@ -567,7 +571,7 @@ export function WeeklyChart({
     <div className="px-4 py-3">
       <div className="flex items-center justify-between mb-2">
         <button
-          onClick={() => setWeekOffset((o) => o - 1)}
+          onClick={() => setWeekOffset(weekOffset - 1)}
           className={navBtnClass}
         >
           <ChevronLeft className="size-3.5" />
@@ -576,7 +580,7 @@ export function WeeklyChart({
           {formatWeekLabel(weekOffset)}
         </span>
         <button
-          onClick={() => setWeekOffset((o) => o + 1)}
+          onClick={() => setWeekOffset(weekOffset + 1)}
           disabled={weekOffset >= 0}
           className={navBtnClass}
         >
@@ -654,19 +658,5 @@ export function WeeklyChart({
         ))}
       </div>
     </div>
-  );
-}
-
-export function HistoryChart() {
-  const sessions = useAppStore((s) => s.sessions);
-
-  if (sessions.length === 0) return null;
-
-  return (
-    <>
-      <DailyChart sessions={sessions} />
-      <div className="h-px bg-border mx-4" />
-      <WeeklyChart sessions={sessions} />
-    </>
   );
 }
