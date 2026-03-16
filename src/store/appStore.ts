@@ -41,11 +41,14 @@ export const DEFAULT_SCHEDULE: WorkSchedule = {
   },
 };
 
+export type BreakReason = "manual" | "screen-lock" | "idle" | "custom";
+
 export interface BreakSession {
   id: string;
   startTime: number; // Unix timestamp ms
   endTime: number;
   earnings: number;
+  reason?: BreakReason;
 }
 
 export interface WorkInterval {
@@ -69,8 +72,9 @@ export interface AppState {
 
   isOnBreak: boolean;
   currentBreakStart: number | null;
+  currentBreakReason: BreakReason | null;
   currentEarnings: number;
-  setBreakStarted: (timestamp: number) => void;
+  setBreakStarted: (timestamp: number, reason?: BreakReason) => void;
   setBreakEnded: (timestamp: number) => void;
   updateCurrentEarnings: (earnings: number) => void;
 
@@ -157,6 +161,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   workIntervals: [],
   isOnBreak: false,
   currentBreakStart: null,
+  currentBreakReason: null,
   currentEarnings: 0,
   sessions: [],
   idleTimeoutSec: 30,
@@ -211,11 +216,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  setBreakStarted: (timestamp) => {
+  setBreakStarted: (timestamp, reason) => {
     if (get().isOnBreak) return;
     set({
       isOnBreak: true,
       currentBreakStart: timestamp,
+      currentBreakReason: reason ?? "manual",
       currentEarnings: 0,
     });
   },
@@ -230,16 +236,18 @@ export const useAppStore = create<AppState>((set, get) => ({
         startTime: state.currentBreakStart,
         endTime: timestamp,
         earnings,
+        reason: state.currentBreakReason ?? undefined,
       };
       set((prev) => ({
         isOnBreak: false,
         currentBreakStart: null,
+        currentBreakReason: null,
         currentEarnings: 0,
         sessions: [...prev.sessions, session],
       }));
       get().saveToDisk();
     } else {
-      set({ isOnBreak: false, currentBreakStart: null, currentEarnings: 0 });
+      set({ isOnBreak: false, currentBreakStart: null, currentBreakReason: null, currentEarnings: 0 });
     }
   },
 
