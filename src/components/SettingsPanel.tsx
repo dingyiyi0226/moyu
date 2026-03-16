@@ -298,7 +298,9 @@ export function SettingsPanel() {
                     </span>
                   )
                 ) : (
-                  <span className="text-xs text-muted-foreground/40 italic">Off</span>
+                  <span className="text-xs text-muted-foreground/40">
+                    {formatTime(day.startMinute)} – {formatTime(day.endMinute)}
+                  </span>
                 )}
               </div>
             );
