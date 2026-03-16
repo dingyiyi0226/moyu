@@ -496,11 +496,13 @@ function WeeklyTooltip({ active, payload }: {
   );
 }
 
-function formatTickDuration(sec: number): string {
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  if (h > 0) return `${h}h`;
-  return `${m}m`;
+function makeTickFormatter(maxSec: number): (sec: number) => string {
+  if (maxSec > 2 * 3600) {
+    // hours unit for all ticks
+    return (sec) => `${Math.round(sec / 3600)}h`;
+  }
+  // minutes unit for all ticks
+  return (sec) => `${Math.round(sec / 60)}m`;
 }
 
 export function WeeklyChart({
@@ -544,7 +546,7 @@ export function WeeklyChart({
     const ceil = Math.ceil(maxSec / step) * step;
     const ticks: number[] = [];
     for (let v = 0; v <= ceil; v += step) ticks.push(v);
-    return { ticks, domain: [0, ceil] as [number, number] };
+    return { ticks, domain: [0, ceil] as [number, number], tickFormatter: makeTickFormatter(maxSec) };
   }, [bars, hiddenKeys]);
 
   const chartData = useMemo(
@@ -612,7 +614,7 @@ export function WeeklyChart({
             tickLine={false}
             axisLine={false}
             tick={{ fontSize: 8 }}
-            tickFormatter={formatTickDuration}
+            tickFormatter={yTicks.tickFormatter}
             width={28}
             domain={yTicks.domain}
             ticks={yTicks.ticks}
