@@ -31,10 +31,11 @@ pub fn start_idle_detection(app: AppHandle, timeout_secs: Arc<Mutex<u64>>) {
             let idle = seconds_since_last_input();
 
             if !was_idle && idle >= threshold {
-                let ts = std::time::SystemTime::now()
+                let now_ms = std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap()
                     .as_millis() as u64;
+                let ts = now_ms - (idle * 1000.0) as u64;
                 let _ = app.emit("break:started", BreakStartPayload { ts, reason: "idle" });
                 was_idle = true;
             } else if was_idle && idle < 1.0 {
