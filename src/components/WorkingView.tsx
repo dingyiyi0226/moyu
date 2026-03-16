@@ -181,15 +181,15 @@ export function WorkingView() {
       )}
 
       <div className="rounded-xl bg-muted/60 px-4 py-3">
-        <div className="flex items-baseline justify-between">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+        <div className="flex items-start justify-between">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground leading-none">
             Today
           </span>
-          <span className="text-xl font-semibold tabular-nums tracking-tight">
+          <span className="text-xl font-semibold tabular-nums tracking-tight leading-none">
             {formatCurrency(todayStats.earnings)}
           </span>
         </div>
-        <p className="text-[11px] text-muted-foreground mt-0.5">
+        <p className="text-[11px] text-muted-foreground mt-2">
           Work {formatDuration(todayStats.workDuration)} &middot; Break {formatDuration(todayStats.breakDuration)}
         </p>
       </div>
