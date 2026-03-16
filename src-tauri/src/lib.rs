@@ -1,8 +1,12 @@
+mod idle_detection;
 mod screen_events;
 mod tray;
 
 #[cfg(target_os = "macos")]
 mod panel;
+
+use std::sync::{Arc, Mutex};
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -10,7 +14,10 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_nspanel::init())
-        .invoke_handler(tauri::generate_handler![tray::update_tray_title])
+        .invoke_handler(tauri::generate_handler![
+            tray::update_tray_title,
+            idle_detection::set_idle_timeout,
+        ])
         .setup(|app| {
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
@@ -21,6 +28,10 @@ pub fn run() {
             panel::setup_panel(app.handle());
 
             screen_events::start_listening(app.handle().clone());
+
+            let timeout_arc: Arc<Mutex<u64>> = Arc::new(Mutex::new(30));
+            app.manage(timeout_arc.clone());
+            idle_detection::start_idle_detection(app.handle().clone(), timeout_arc);
 
             Ok(())
         })
