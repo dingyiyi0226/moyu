@@ -312,7 +312,7 @@ export function SettingsPanel() {
                 setIdleTimeoutSec(val);
               }
             }}
-            className={`w-16 h-7 rounded-md border px-2 text-xs outline-none transition-colors focus:ring-1 focus:ring-foreground/10 text-center bg-transparent ${
+            className={`w-10 h-7 rounded-sm border px-1 text-xs outline-none transition-colors focus:ring-1 focus:ring-foreground/10 text-center bg-transparent ${
               idleInputValue >= 10 && idleInputValue <= 3600
                 ? "border-input focus:border-foreground/30"
                 : "border-red-500 text-red-400"
