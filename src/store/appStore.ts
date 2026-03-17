@@ -40,6 +40,11 @@ export interface WorkInterval {
   end: number | null; // null = currently clocked in
 }
 
+export interface PauseInterval {
+  start: number; // Unix timestamp ms
+  end: number | null; // null = currently paused
+}
+
 export interface AppState {
   salary: SalaryConfig;
   setSalary: (salary: SalaryConfig) => void;
@@ -53,6 +58,10 @@ export interface AppState {
   workIntervals: WorkInterval[]; // today's clock-in/out intervals
   clockIn: (at?: number) => void;
   clockOut: (at?: number) => void;
+
+  pauseIntervals: PauseInterval[];
+  startPause: () => void;
+  endPause: () => void;
 
   isOnBreak: boolean;
   currentBreakStart: number | null;
@@ -86,6 +95,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   schedule: DEFAULT_SCHEDULE,
   dailySchedules: {},
   workIntervals: [],
+  pauseIntervals: [],
   isOnBreak: false,
   currentBreakStart: null,
   currentBreakReason: null,
@@ -139,14 +149,43 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (intervals.length > 0 && intervals[intervals.length - 1].end === null) {
       const updated = [...intervals];
       updated[updated.length - 1] = { ...updated[updated.length - 1], end: ts };
-      set({ workIntervals: updated });
+      // Also end any active pause
+      const pauses = state.pauseIntervals;
+      const pauseUpdates: Partial<AppState> = {};
+      if (pauses.length > 0 && pauses[pauses.length - 1].end === null) {
+        const updatedPauses = [...pauses];
+        updatedPauses[updatedPauses.length - 1] = { ...updatedPauses[updatedPauses.length - 1], end: ts };
+        pauseUpdates.pauseIntervals = updatedPauses;
+      }
+      set({ workIntervals: updated, ...pauseUpdates });
       invoke("set_clocked_in", { clocked: false });
       get().saveToDisk();
     }
   },
 
+  startPause: () => {
+    const state = get();
+    const pauses = state.pauseIntervals;
+    const isPaused = pauses.length > 0 && pauses[pauses.length - 1].end === null;
+    if (isPaused) return;
+    set({ pauseIntervals: [...pauses, { start: Date.now(), end: null }] });
+    get().saveToDisk();
+  },
+
+  endPause: () => {
+    const pauses = get().pauseIntervals;
+    if (pauses.length === 0 || pauses[pauses.length - 1].end !== null) return;
+    const updated = [...pauses];
+    updated[updated.length - 1] = { ...updated[updated.length - 1], end: Date.now() };
+    set({ pauseIntervals: updated });
+    get().saveToDisk();
+  },
+
   setBreakStarted: (timestamp, reason) => {
-    if (get().isOnBreak) return;
+    const state = get();
+    const pauses = state.pauseIntervals;
+    const isPaused = pauses.length > 0 && pauses[pauses.length - 1].end === null;
+    if (state.isOnBreak || isPaused) return;
     set({
       isOnBreak: true,
       currentBreakStart: timestamp,
@@ -241,6 +280,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       const sessions = await store.get<BreakSession[]>("sessions");
       const schedule = await store.get<WorkSchedule>("schedule");
       const workIntervals = await store.get<WorkInterval[]>("workIntervals");
+      const pauseIntervals = await store.get<PauseInterval[]>("pauseIntervals");
       const dailySchedules = await store.get<Record<string, DaySchedule>>("dailySchedules");
       const idleTimeoutSec = await store.get<number>("idleTimeoutSec");
       const salary: SalaryConfig = {
@@ -255,6 +295,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         schedule: schedule ?? DEFAULT_SCHEDULE,
         dailySchedules: dailySchedules ?? {},
         workIntervals: workIntervals ?? [],
+        pauseIntervals: pauseIntervals ?? [],
         idleTimeoutSec: resolvedIdleTimeout,
       });
       invoke("set_idle_timeout", { seconds: resolvedIdleTimeout });
@@ -275,6 +316,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       await store.set("schedule", state.schedule);
       await store.set("dailySchedules", state.dailySchedules);
       await store.set("workIntervals", state.workIntervals);
+      await store.set("pauseIntervals", state.pauseIntervals);
       await store.set("idleTimeoutSec", state.idleTimeoutSec);
       await store.set("dbVersion", DB_VERSION);
       await store.save();
