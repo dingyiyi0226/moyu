@@ -128,7 +128,7 @@ export function computeDayStats(
     }
   }
 
-  workSec = Math.max(0, workSec - breakSec - pauseSec);
+  workSec = Math.max(0, workSec - breakSec);
 
   return { breakSec, workSec, pauseSec, earnings, breakCount };
 }

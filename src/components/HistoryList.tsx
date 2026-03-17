@@ -333,11 +333,14 @@ export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: 
                 if (entry.kind === "pause") {
                   const { pause } = entry;
                   const isEditing = editing?.entry.kind === "pause" && editing.entry.pause.start === pause.start;
-                  const endTs = pause.end ?? Date.now();
-                  const totalSec = Math.round((endTs - pause.start) / 1000);
-                  const m = Math.floor(totalSec / 60);
-                  const s = totalSec % 60;
-                  const duration = m > 0 ? `${m}m ${s}s` : `${s}s`;
+                  const isOngoing = pause.end === null;
+                  let duration: string | null = null;
+                  if (!isOngoing) {
+                    const totalSec = Math.round((pause.end - pause.start) / 1000);
+                    const m = Math.floor(totalSec / 60);
+                    const s = totalSec % 60;
+                    duration = m > 0 ? `${m}m ${s}s` : `${s}s`;
+                  }
 
                   return (
                     <div
@@ -360,8 +363,8 @@ export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: 
                       ) : (
                         <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
                           <Presentation className="size-3" />
-                          {formatTimestamp(pause.start)} &middot; {duration}
-                          {!pause.end && (
+                          {formatTimestamp(pause.start)}{duration && <>&nbsp;&middot; {duration}</>}
+                          {isOngoing && (
                             <span className="text-[10px] px-1 py-px rounded bg-amber-100 dark:bg-amber-950/40 text-amber-600/70 leading-none">
                               ongoing
                             </span>
