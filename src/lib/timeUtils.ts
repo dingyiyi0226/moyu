@@ -1,4 +1,9 @@
-import { type BreakSession, type WorkInterval, getDateKey } from "@/store/appStore";
+import { type BreakSession, type WorkInterval } from "@/store/appStore";
+
+export function getDateKey(ts: number): string {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 export function formatDuration(totalSec: number): string {
   const h = Math.floor(totalSec / 3600);

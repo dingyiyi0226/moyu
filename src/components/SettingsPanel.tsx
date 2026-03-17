@@ -1,12 +1,10 @@
 import { useState, useMemo } from "react";
 import { Pencil, Check } from "lucide-react";
 import { useCurrency } from "@/hooks/useCurrency";
+import { perSecondRate, weeklyWorkHours, DEFAULT_SCHEDULE } from "@/lib/scheduleUtils";
 import {
   useAppStore,
-  perSecondRate,
-  weeklyWorkHours,
   CURRENCIES,
-  DEFAULT_SCHEDULE,
   type Currency,
   type SalaryPeriod,
   type DaySchedule,

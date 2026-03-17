@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
-import { useAppStore, isCurrentlyWorking, perSecondRate, getDayScheduleForDate, getDateKey } from "@/store/appStore";
+import { useAppStore } from "@/store/appStore";
+import { isCurrentlyWorking, perSecondRate, getDayScheduleForDate } from "@/lib/scheduleUtils";
+import { getDateKey } from "@/lib/timeUtils";
 import { Play, LogIn, LogOut, PenLine, Coffee, Clock, CalendarClock } from "lucide-react";
 import { RangePicker } from "@/components/BreakPicker";
 import { computeDayStats, formatDuration } from "@/lib/timeUtils";

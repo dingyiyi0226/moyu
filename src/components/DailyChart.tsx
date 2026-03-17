@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { useAppStore, getDayScheduleForDate, type BreakSession, type WorkInterval } from "@/store/appStore";
+import { useAppStore, type BreakSession, type WorkInterval } from "@/store/appStore";
+import { getDayScheduleForDate } from "@/lib/scheduleUtils";
 import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import {

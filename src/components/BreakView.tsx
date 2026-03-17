@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useBreakTimer } from "@/hooks/useBreakTimer";
-import { useAppStore, perSecondRate } from "@/store/appStore";
+import { useAppStore } from "@/store/appStore";
+import { perSecondRate } from "@/lib/scheduleUtils";
 import { Square } from "lucide-react";
 import { formatTimer } from "@/lib/timeUtils";
 import { useCurrency } from "@/hooks/useCurrency";

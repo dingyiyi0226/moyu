@@ -1,6 +1,8 @@
 import { useEffect, useRef, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { useAppStore, perSecondRate, getDateKey } from "@/store/appStore";
+import { useAppStore } from "@/store/appStore";
+import { perSecondRate } from "@/lib/scheduleUtils";
+import { getDateKey } from "@/lib/timeUtils";
 
 export function useBreakTimer() {
   const isOnBreak = useAppStore((s) => s.isOnBreak);

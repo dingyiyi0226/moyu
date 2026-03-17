@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
-import { useAppStore, isCurrentlyWorking, type BreakReason } from "@/store/appStore";
+import { useAppStore, type BreakReason } from "@/store/appStore";
+import { isCurrentlyWorking } from "@/lib/scheduleUtils";
 
 interface BreakStartPayload {
   ts: number;

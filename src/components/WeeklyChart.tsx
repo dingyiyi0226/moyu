@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { useAppStore, type BreakSession, getDateKey } from "@/store/appStore";
+import { useAppStore, type BreakSession } from "@/store/appStore";
+import { getDateKey } from "@/lib/timeUtils";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts";
 import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
