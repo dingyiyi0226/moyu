@@ -1,4 +1,4 @@
-import { type BreakSession, type WorkInterval } from "@/store/appStore";
+import { type BreakSession, type PauseInterval, type WorkInterval } from "@/store/appStore";
 
 export function getDateKey(ts: number): string {
   const d = new Date(ts);
@@ -76,11 +76,29 @@ export function getBreakSessionsForDate(
     .sort((a, b) => a.startTime - b.startTime);
 }
 
+export function getPauseIntervalsForDate(
+  allIntervals: PauseInterval[],
+  date: Date,
+): PauseInterval[] {
+  const dayStart = new Date(date);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(date);
+  dayEnd.setHours(23, 59, 59, 999);
+  const dsMs = dayStart.getTime();
+  const deMs = dayEnd.getTime();
+
+  return allIntervals.filter((iv) => {
+    const end = iv.end ?? Date.now();
+    return iv.start <= deMs && end >= dsMs;
+  });
+}
+
 export function computeDayStats(
   sessions: BreakSession[],
   workIntervals: WorkInterval[],
   date: Date,
-): { breakSec: number; workSec: number; earnings: number; breakCount: number } {
+  pauseIntervals?: PauseInterval[],
+): { breakSec: number; workSec: number; pauseSec: number; earnings: number; breakCount: number } {
   const dateKey = getDateKey(date.getTime());
 
   let breakSec = 0;
@@ -100,9 +118,19 @@ export function computeDayStats(
     const end = iv.end ?? Date.now();
     workSec += Math.round((end - iv.start) / 1000);
   }
-  workSec = Math.max(0, workSec - breakSec);
 
-  return { breakSec, workSec, earnings, breakCount };
+  let pauseSec = 0;
+  if (pauseIntervals) {
+    const dayPauses = getPauseIntervalsForDate(pauseIntervals, date);
+    for (const iv of dayPauses) {
+      const end = iv.end ?? Date.now();
+      pauseSec += Math.round((end - iv.start) / 1000);
+    }
+  }
+
+  workSec = Math.max(0, workSec - breakSec - pauseSec);
+
+  return { breakSec, workSec, pauseSec, earnings, breakCount };
 }
 
 /** Convert fractional hour to % position within the schedule bar */

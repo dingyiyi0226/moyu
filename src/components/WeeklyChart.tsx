@@ -22,6 +22,7 @@ function aggregateWeekly(
   sessions: BreakSession[],
   workIntervals: ReturnType<typeof useAppStore.getState>["workIntervals"],
   weekOffset: number,
+  pauseIntervals: ReturnType<typeof useAppStore.getState>["pauseIntervals"],
 ): BarData[] {
   const today = new Date();
   const dayOfWeek = today.getDay();
@@ -32,7 +33,7 @@ function aggregateWeekly(
   return WEEK_DAY_LABELS.map((label, i) => {
     const date = new Date(sunday);
     date.setDate(sunday.getDate() + i);
-    const stats = computeDayStats(sessions, workIntervals, date);
+    const stats = computeDayStats(sessions, workIntervals, date, pauseIntervals);
     return { key: getDateKey(date.getTime()), label, ...stats };
   });
 }
@@ -108,12 +109,13 @@ export function WeeklyChart({
   onWeekOffsetChange: (offset: number) => void;
 }) {
   const allWorkIntervals = useAppStore((s) => s.workIntervals);
+  const pauseIntervals = useAppStore((s) => s.pauseIntervals);
   const setWeekOffset = onWeekOffsetChange;
   const [hiddenKeys, setHiddenKeys] = useState<Set<string>>(new Set());
 
   const bars = useMemo(
-    () => aggregateWeekly(sessions, allWorkIntervals, weekOffset),
-    [sessions, allWorkIntervals, weekOffset],
+    () => aggregateWeekly(sessions, allWorkIntervals, weekOffset, pauseIntervals),
+    [sessions, allWorkIntervals, weekOffset, pauseIntervals],
   );
 
   const yTicks = useMemo(() => {

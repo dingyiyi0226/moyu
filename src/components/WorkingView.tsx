@@ -34,11 +34,13 @@ export function WorkingView() {
     return getDayScheduleForDate(new Date(), schedule, dailySchedules);
   }, [schedule, dailySchedules]);
 
+  const pauseIntervals = useAppStore((s) => s.pauseIntervals);
+
   const todayStats = useMemo(() => {
     const today = new Date();
-    const stats = computeDayStats(sessions, workIntervals, today);
+    const stats = computeDayStats(sessions, workIntervals, today, pauseIntervals);
     return { earnings: stats.earnings, breakDuration: stats.breakSec, workDuration: stats.workSec };
-  }, [sessions, workIntervals]);
+  }, [sessions, workIntervals, pauseIntervals]);
 
   return (
     <div className="space-y-4">

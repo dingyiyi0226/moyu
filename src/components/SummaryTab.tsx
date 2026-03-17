@@ -9,6 +9,7 @@ import { HistoryList } from "@/components/HistoryList";
 function WeeklySummary({ weekOffset }: { weekOffset: number }) {
   const sessions = useAppStore((s) => s.sessions);
   const workIntervals = useAppStore((s) => s.workIntervals);
+  const pauseIntervals = useAppStore((s) => s.pauseIntervals);
   const { formatCurrency } = useCurrency();
 
   const stats = useMemo(() => {
@@ -25,13 +26,13 @@ function WeeklySummary({ weekOffset }: { weekOffset: number }) {
       const date = new Date(sunday);
       date.setDate(sunday.getDate() + i);
       if (date > now) break;
-      const day = computeDayStats(sessions, workIntervals, date);
+      const day = computeDayStats(sessions, workIntervals, date, pauseIntervals);
       totalWorkSec += day.workSec;
       totalBreakSec += day.breakSec;
       totalEarnings += day.earnings;
     }
     return { earnings: totalEarnings, workDuration: totalWorkSec, breakDuration: totalBreakSec };
-  }, [sessions, workIntervals, weekOffset]);
+  }, [sessions, workIntervals, pauseIntervals, weekOffset]);
 
   const weekLabel = useMemo(() => {
     if (weekOffset === 0) return "This Week";
