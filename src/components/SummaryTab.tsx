@@ -51,7 +51,7 @@ function WeeklySummary({ weekOffset }: { weekOffset: number }) {
       <div className="text-[10px] text-muted-foreground">
         Your earnings {weekOffset === 0 ? "this week" : `in ${weekLabel}`}
       </div>
-      <div className="text-2xl font-semibold tabular-nums mt-0.5">
+      <div className="text-2xl font-semibold mt-0.5">
         {formatCurrency(stats.earnings)}
       </div>
       <div className="text-[10px] text-muted-foreground mt-0.5">

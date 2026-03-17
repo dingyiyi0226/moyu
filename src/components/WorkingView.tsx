@@ -175,7 +175,7 @@ export function WorkingView() {
         <div className="text-[10px] text-muted-foreground">
           Your earnings today
         </div>
-        <div className="text-2xl font-semibold tabular-nums mt-0.5">
+        <div className="text-2xl font-semibold mt-0.5">
           {formatCurrency(todayStats.earnings)}
         </div>
         <div className="text-[10px] text-muted-foreground mt-0.5">

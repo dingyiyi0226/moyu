@@ -44,7 +44,7 @@ export function BreakView() {
         <p className="text-[11px] font-medium uppercase tracking-wider text-emerald-600/70 dark:text-emerald-400/70 mb-1">
           Earned
         </p>
-        <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-400 tabular-nums tracking-tight">
+        <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-400 tracking-tight">
           {formatCurrency(currentEarnings)}
         </p>
         <p className="text-[11px] text-muted-foreground mt-2">

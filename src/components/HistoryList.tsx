@@ -248,7 +248,7 @@ export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: 
                   {group.date}
                 </span>
                 {group.breakTotal > 0 && (
-                  <span className="text-[11px] font-semibold tabular-nums text-emerald-600">
+                  <span className="text-[11px] font-semibold text-emerald-600">
                     {formatCurrency(group.breakTotal)}
                   </span>
                 )}
@@ -349,7 +349,7 @@ export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: 
                             </span>
                           )}
                         </span>
-                        <span className="tabular-nums text-foreground/80">
+                        <span className="text-foreground/80">
                           {formatCurrency(session.earnings)}
                         </span>
                       </>
