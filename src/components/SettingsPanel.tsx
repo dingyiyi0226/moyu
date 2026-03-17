@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { Pencil, Check } from "lucide-react";
+import { useSalaryCalc } from "@/hooks/useSalaryCalc";
 import {
   useAppStore,
   perSecondRate,
@@ -33,6 +34,8 @@ export function SettingsPanel() {
   const setIdleTimeoutSec = useAppStore((s) => s.setIdleTimeoutSec);
   const [idleInputValue, setIdleInputValue] = useState(storeIdleTimeoutSec);
 
+  const { formatCurrency } = useSalaryCalc();
+
   const [editing, setEditing] = useState(false);
   const [days, setDays] = useState<Record<number, DaySchedule>>(() => ({
     ...DEFAULT_SCHEDULE.days,
@@ -53,16 +56,6 @@ export function SettingsPanel() {
       perSecond: rate,
     };
   }, [salary, schedule]);
-
-  const fmtPreview = useMemo(() => {
-    const fmt = (n: number, maxFrac = 0) =>
-      new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: salary.currency,
-        maximumFractionDigits: maxFrac,
-      }).format(n);
-    return { short: (n: number) => fmt(n), precise: (n: number) => fmt(n, 4) };
-  }, [salary.currency]);
 
   const handleAmountChange = (value: string) => {
     const numAmount = parseFloat(value) || 0;
@@ -111,7 +104,7 @@ export function SettingsPanel() {
       {/* Row 1: Large annual salary */}
       <div className="text-center">
         <div className="text-2xl font-semibold">
-          {fmtPreview.short(preview.annual)}
+          {formatCurrency(preview.annual, 0)}
         </div>
         <div className="text-[10px] text-muted-foreground mt-0.5">annual salary</div>
       </div>
@@ -119,15 +112,15 @@ export function SettingsPanel() {
       {/* Rows 2+3: monthly/hourly | daily/per-second */}
       <div className="flex justify-center gap-5">
         <div className="grid grid-cols-[auto_auto] items-baseline gap-x-1 gap-y-0.5">
-          <span className="text-xs font-medium text-right">{fmtPreview.short(preview.monthly)}</span>
+          <span className="text-xs font-medium text-right">{formatCurrency(preview.monthly, 0)}</span>
           <span className="text-[10px] text-muted-foreground">/ month</span>
-          <span className="text-xs font-medium text-right">{fmtPreview.short(preview.hourly)}</span>
+          <span className="text-xs font-medium text-right">{formatCurrency(preview.hourly, 0)}</span>
           <span className="text-[10px] text-muted-foreground">/ hour</span>
         </div>
         <div className="grid grid-cols-[auto_auto] items-baseline gap-x-1 gap-y-0.5">
-          <span className="text-xs font-medium text-right">{fmtPreview.short(preview.daily)}</span>
+          <span className="text-xs font-medium text-right">{formatCurrency(preview.daily, 0)}</span>
           <span className="text-[10px] text-muted-foreground">/ day</span>
-          <span className="text-xs font-medium text-right">{fmtPreview.precise(preview.perSecond)}</span>
+          <span className="text-xs font-medium text-right">{formatCurrency(preview.perSecond)}</span>
           <span className="text-[10px] text-muted-foreground">/ second</span>
         </div>
       </div>

@@ -5,12 +5,12 @@ export function useSalaryCalc() {
   const schedule = useAppStore((s) => s.schedule);
   const rate = perSecondRate(salary, schedule);
 
-  const formatCurrency = (amount: number): string => {
+  const formatCurrency = (amount: number, maxFractionDigits = 2): string => {
     const parts = new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: salary.currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: maxFractionDigits,
     }).formatToParts(amount);
     return parts.map((p) => (p.type === "currency" ? p.value + " " : p.value)).join("");
   };
