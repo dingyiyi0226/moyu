@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { useAppStore, type BreakReason } from "@/store/appStore";
-import { isCurrentlyWorking } from "@/lib/scheduleUtils";
 
 interface BreakStartPayload {
   ts: number;
@@ -11,17 +10,13 @@ interface BreakStartPayload {
 export function useSystemEvents() {
   const setBreakStarted = useAppStore((s) => s.setBreakStarted);
   const setBreakEnded = useAppStore((s) => s.setBreakEnded);
-  const schedule = useAppStore((s) => s.schedule);
-  const workIntervals = useAppStore((s) => s.workIntervals);
 
   useEffect(() => {
     const unlisteners: (() => void)[] = [];
 
     const setup = async () => {
       const unlisten1 = await listen<BreakStartPayload>("break:started", (event) => {
-        if (isCurrentlyWorking(workIntervals, schedule)) {
-          setBreakStarted(event.payload.ts, event.payload.reason);
-        }
+        setBreakStarted(event.payload.ts, event.payload.reason);
       });
       unlisteners.push(unlisten1);
 
@@ -36,5 +31,5 @@ export function useSystemEvents() {
     return () => {
       unlisteners.forEach((fn) => fn());
     };
-  }, [setBreakStarted, setBreakEnded, schedule, workIntervals]);
+  }, [setBreakStarted, setBreakEnded]);
 }

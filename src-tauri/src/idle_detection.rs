@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
-use crate::BreakStartPayload;
+use crate::{BreakStartPayload, ClockedIn};
 
 #[cfg(target_os = "macos")]
 #[link(name = "CoreGraphics", kind = "framework")]
@@ -16,12 +16,18 @@ fn seconds_since_last_input() -> f64 {
     unsafe { CGEventSourceSecondsSinceLastEventType(0, u32::MAX) }
 }
 
-pub fn start_idle_detection(app: AppHandle, timeout_secs: Arc<Mutex<u64>>) {
+pub fn start_idle_detection(app: AppHandle, timeout_secs: Arc<Mutex<u64>>, clocked_in: ClockedIn) {
     #[cfg(target_os = "macos")]
     thread::spawn(move || {
         let mut was_idle = false;
         loop {
             thread::sleep(Duration::from_secs(1));
+
+            if !*clocked_in.lock().unwrap() {
+                was_idle = false;
+                continue;
+            }
+
             let threshold = *timeout_secs.lock().unwrap() as f64;
             let idle = seconds_since_last_input();
 

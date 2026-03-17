@@ -126,6 +126,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         updates.dailySchedules = { ...state.dailySchedules, [dateKey]: { ...template } };
       }
       set(updates);
+      invoke("set_clocked_in", { clocked: true });
       get().saveToDisk();
     }
   },
@@ -139,6 +140,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       const updated = [...intervals];
       updated[updated.length - 1] = { ...updated[updated.length - 1], end: ts };
       set({ workIntervals: updated });
+      invoke("set_clocked_in", { clocked: false });
       get().saveToDisk();
     }
   },
@@ -256,6 +258,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         idleTimeoutSec: resolvedIdleTimeout,
       });
       invoke("set_idle_timeout", { seconds: resolvedIdleTimeout });
+      const intervals = workIntervals ?? [];
+      const isClockedIn = intervals.length > 0 && intervals[intervals.length - 1].end === null;
+      invoke("set_clocked_in", { clocked: isClockedIn });
     } catch (e) {
       console.error("Failed to load store:", e);
     }
