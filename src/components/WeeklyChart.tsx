@@ -231,7 +231,7 @@ export function WeeklyChart({
       </ChartContainer>
 
       {/* Legend toggles */}
-      <div className="flex items-center gap-3 -mt-1">
+      <div className="flex items-center gap-3 -mt-1 pl-3">
         {(["work", "break"] as const).map((key) => (
           <button
             key={key}
