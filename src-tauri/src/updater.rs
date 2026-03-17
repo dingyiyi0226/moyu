@@ -1,26 +1,79 @@
 use tauri::AppHandle;
-use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use tauri_plugin_updater::UpdaterExt;
 
-fn show_message(app: &AppHandle, kind: MessageDialogKind, title: &str, message: &str) {
-    app.dialog()
-        .message(message)
-        .title(title)
-        .kind(kind)
-        .blocking_show();
+// macOS-only: use native NSAlert to display the app icon and avoid repositioning the tray panel.
+// rfd / tauri-plugin-dialog falls back to CFUserNotificationDisplayAlert (no custom icon) when
+// there is no parent window, and setting a parent would pull the NSPanel to the screen centre.
+mod alert {
+    use objc2::MainThreadMarker;
+    use objc2::rc::autoreleasepool;
+    use objc2_app_kit::{
+        NSAlert, NSAlertFirstButtonReturn, NSAlertStyle, NSApplication, NSModalResponse,
+    };
+    use objc2_foundation::NSString;
+
+    fn run_on_main<R: Send, F: FnOnce(MainThreadMarker) -> R + Send>(run: F) -> R {
+        if let Some(mtm) = MainThreadMarker::new() {
+            run(mtm)
+        } else {
+            dispatch2::run_on_main(run)
+        }
+    }
+
+    fn build_alert(
+        mtm: MainThreadMarker,
+        style: NSAlertStyle,
+        title: &str,
+        message: &str,
+        buttons: &[&str],
+    ) -> NSModalResponse {
+        let alert = NSAlert::new(mtm);
+        alert.setAlertStyle(style);
+        alert.setMessageText(&NSString::from_str(title));
+        alert.setInformativeText(&NSString::from_str(message));
+
+        let app = NSApplication::sharedApplication(mtm);
+        if let Some(icon) = app.applicationIconImage() {
+            unsafe { alert.setIcon(Some(&icon)) };
+        }
+
+        for label in buttons {
+            alert.addButtonWithTitle(&NSString::from_str(label));
+        }
+
+        alert.runModal()
+    }
+
+    pub fn show_message(title: &str, message: &str) {
+        let title = title.to_owned();
+        let message = message.to_owned();
+        autoreleasepool(move |_| {
+            run_on_main(move |mtm| {
+                build_alert(mtm, NSAlertStyle::Informational, &title, &message, &["OK"]);
+            });
+        });
+    }
+
+    pub fn show_confirm(title: &str, message: &str, ok: &str, cancel: &str) -> bool {
+        let title = title.to_owned();
+        let message = message.to_owned();
+        let ok = ok.to_owned();
+        let cancel = cancel.to_owned();
+        autoreleasepool(move |_| {
+            run_on_main(move |mtm| {
+                let response = build_alert(
+                    mtm,
+                    NSAlertStyle::Informational,
+                    &title,
+                    &message,
+                    &[&ok, &cancel],
+                );
+                response == NSAlertFirstButtonReturn
+            })
+        })
+    }
 }
 
-fn show_confirm(app: &AppHandle, title: &str, message: &str, ok: &str, cancel: &str) -> bool {
-    app.dialog()
-        .message(message)
-        .title(title)
-        .kind(MessageDialogKind::Info)
-        .buttons(MessageDialogButtons::OkCancelCustom(
-            ok.into(),
-            cancel.into(),
-        ))
-        .blocking_show()
-}
 
 pub fn check_for_update(app: &AppHandle) {
     let app = app.clone();
@@ -28,15 +81,14 @@ pub fn check_for_update(app: &AppHandle) {
         let updater = match app.updater() {
             Ok(u) => u,
             Err(e) => {
-                show_message(&app, MessageDialogKind::Warning, "Update Error", &format!("Updater not available: {}", e));
+                alert::show_message("Update Error", &format!("Updater not available: {}", e));
                 return;
             }
         };
 
         match updater.check().await {
             Ok(Some(update)) => {
-                let confirmed = show_confirm(
-                    &app,
+                let confirmed = alert::show_confirm(
                     "Update Available",
                     &format!(
                         "New version {} is available. Install now?",
@@ -49,8 +101,7 @@ pub fn check_for_update(app: &AppHandle) {
                 if confirmed {
                     match update.download_and_install(|_, _| {}, || {}).await {
                         Ok(()) => {
-                            let restart = show_confirm(
-                                &app,
+                            let restart = alert::show_confirm(
                                 "Update Complete",
                                 "Update installed successfully. Restart now?",
                                 "Restart",
@@ -61,9 +112,7 @@ pub fn check_for_update(app: &AppHandle) {
                             }
                         }
                         Err(e) => {
-                            show_message(
-                                &app,
-                                MessageDialogKind::Warning,
+                            alert::show_message(
                                 "Update Error",
                                 &format!("Update failed: {}", e),
                             );
@@ -72,17 +121,13 @@ pub fn check_for_update(app: &AppHandle) {
                 }
             }
             Ok(None) => {
-                show_message(
-                    &app,
-                    MessageDialogKind::Info,
+                alert::show_message(
                     "No Updates",
                     "There are currently no updates available.",
                 );
             }
             Err(e) => {
-                show_message(
-                    &app,
-                    MessageDialogKind::Warning,
+                alert::show_message(
                     "Update Error",
                     &format!("Failed to check for updates: {}", e),
                 );

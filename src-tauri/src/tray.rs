@@ -64,7 +64,7 @@ fn run_timer(app: AppHandle, state: Arc<Mutex<BreakTimerState>>, gen: u64) {
 pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
     let show_i = MenuItem::with_id(app, "show", "Show", true, None::<&str>)?;
     let separator = PredefinedMenuItem::separator(app)?;
-    let update_i = MenuItem::with_id(app, "check_update", "Check for Update", true, None::<&str>)?;
+    let update_i = MenuItem::with_id(app, "check_update", "Check for Updates...", true, None::<&str>)?;
     let quit_i = MenuItem::with_id(app, "quit", "Quit Moyu", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&show_i, &separator, &update_i, &quit_i])?;
 
