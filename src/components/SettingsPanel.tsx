@@ -130,12 +130,12 @@ export function SettingsPanel() {
           placeholder="100000"
           defaultValue={salary.amount || ""}
           onChange={(e) => handleAmountChange(e.target.value)}
-          className="w-24 shrink-0 h-9 rounded-lg border border-input bg-transparent px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:ring-1 focus:ring-foreground/10"
+          className="w-24 shrink-0 h-9 rounded-sm  border border-input bg-transparent px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-foreground/30 focus:ring-1 focus:ring-foreground/10"
         />
         <select
           value={salary.currency}
           onChange={(e) => handleCurrencyChange(e.target.value as Currency)}
-          className="h-9 rounded-lg border border-input bg-transparent px-2 text-sm outline-none transition-colors focus:border-foreground/30 focus:ring-1 focus:ring-foreground/10"
+          className="h-9 rounded-sm border border-input bg-transparent px-2 text-sm outline-none transition-colors focus:border-foreground/30 focus:ring-1 focus:ring-foreground/10"
         >
           {CURRENCIES.map((c) => (
             <option key={c} value={c}>
@@ -146,7 +146,7 @@ export function SettingsPanel() {
         <select
           value={salary.period}
           onChange={(e) => handlePeriodChange(e.target.value as SalaryPeriod)}
-          className="h-9 rounded-lg border border-input bg-transparent px-2 text-sm outline-none transition-colors focus:border-foreground/30 focus:ring-1 focus:ring-foreground/10"
+          className="h-9 rounded-sm border border-input bg-transparent px-2 text-sm outline-none transition-colors focus:border-foreground/30 focus:ring-1 focus:ring-foreground/10"
         >
           {periods.map((p) => (
             <option key={p.value} value={p.value}>
@@ -167,7 +167,7 @@ export function SettingsPanel() {
           {editing ? (
             <button
               onClick={saveSchedule}
-              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="p-1 rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               title="Save"
             >
               <Check className="size-3.5" />
@@ -175,7 +175,7 @@ export function SettingsPanel() {
           ) : (
             <button
               onClick={startEditing}
-              className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+              className="p-1 rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
               title="Edit"
             >
               <Pencil className="size-3.5" />
@@ -194,7 +194,7 @@ export function SettingsPanel() {
                 {editing ? (
                   <button
                     onClick={() => toggleDay(idx)}
-                    className={`w-10 shrink-0 rounded-md py-1 text-[11px] font-medium transition-all ${
+                    className={`w-10 shrink-0 rounded-sm py-1 text-[11px] font-medium transition-all ${
                       day.enabled
                         ? "bg-foreground text-background"
                         : "bg-muted text-muted-foreground hover:text-foreground"
