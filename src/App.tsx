@@ -28,8 +28,8 @@ function App() {
   return (
     <div className="w-[320px] min-h-0 select-none bg-background rounded-xl overflow-hidden">
       {showSettings ? (
-        <div className="p-4">
-          <div className="flex items-center gap-2 mb-5">
+        <div className="pt-4 flex flex-col h-screen">
+          <div className="flex items-center gap-2 mb-5 shrink-0 px-4">
             <button
               onClick={() => setShowSettings(false)}
               className="flex items-center gap-0.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -38,7 +38,9 @@ function App() {
               Back
             </button>
           </div>
-          <SettingsPanel />
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+            <SettingsPanel />
+          </div>
         </div>
       ) : (
         <>
