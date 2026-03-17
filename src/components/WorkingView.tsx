@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useAppStore } from "@/store/appStore";
 import { isCurrentlyWorking, perSecondRate, getDayScheduleForDate } from "@/lib/scheduleUtils";
 import { getDateKey } from "@/lib/timeUtils";
-import { LogIn, LogOut, PenLine, Coffee, Clock, CalendarClock } from "lucide-react";
+import { LogIn, LogOut, PenLine, Coffee, Clock, CalendarClock, Presentation } from "lucide-react";
 import { RangePicker } from "@/components/BreakPicker";
 import { computeDayStats, formatDuration } from "@/lib/timeUtils";
 import { useCurrency } from "@/hooks/useCurrency";
@@ -24,17 +24,19 @@ export function WorkingView() {
   const addSession = useAppStore((s) => s.addSession);
   const setDailySchedule = useAppStore((s) => s.setDailySchedule);
   const salary = useAppStore((s) => s.salary);
+  const pauseIntervals = useAppStore((s) => s.pauseIntervals);
+  const startPause = useAppStore((s) => s.startPause);
+  const endPause = useAppStore((s) => s.endPause);
   const { formatCurrency } = useCurrency();
   const working = isCurrentlyWorking(workIntervals, schedule);
   const isClocked = workIntervals.length > 0 && workIntervals[workIntervals.length - 1].end === null;
+  const isPaused = pauseIntervals.length > 0 && pauseIntervals[pauseIntervals.length - 1].end === null;
 
   const [customPicker, setCustomPicker] = useState<"choose" | "break" | "work" | "schedule" | null>(null);
 
   const todaySchedule = useMemo(() => {
     return getDayScheduleForDate(new Date(), schedule, dailySchedules);
   }, [schedule, dailySchedules]);
-
-  const pauseIntervals = useAppStore((s) => s.pauseIntervals);
 
   const todayStats = useMemo(() => {
     const today = new Date();
@@ -75,7 +77,20 @@ export function WorkingView() {
               Clock In
             </button>
           )}
-          {working && (
+          {isClocked && (
+            <button
+              onClick={() => (isPaused ? endPause() : startPause())}
+              className={`self-stretch flex items-center px-1.5 rounded-lg text-[11px] font-medium transition-colors ${
+                isPaused
+                  ? "text-amber-600 bg-amber-100 hover:bg-amber-200 dark:bg-amber-950/60 dark:hover:bg-amber-950/80"
+                  : "text-amber-600 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-950/60"
+              }`}
+              title={isPaused ? "Resume" : "Meeting"}
+            >
+              <Presentation className="size-3" />
+            </button>
+          )}
+          {working && !isPaused && (
             <button
               onClick={() => setBreakStarted(Date.now(), "manual")}
               className="self-stretch flex items-center px-1.5 rounded-lg text-[11px] font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60 transition-colors"
