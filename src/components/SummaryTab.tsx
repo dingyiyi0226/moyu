@@ -85,7 +85,13 @@ export function SummaryTab() {
         <>
           <WeeklyChart sessions={sessions} onBarClick={setSelectedDay} weekOffset={weekOffset} onWeekOffsetChange={setWeekOffset} />
           <div className="h-px bg-border mx-4" />
-          <HistoryList />
+          <HistoryList filterWeekStart={(() => {
+            const now = new Date();
+            const sunday = new Date(now);
+            sunday.setHours(0, 0, 0, 0);
+            sunday.setDate(now.getDate() - now.getDay() + weekOffset * 7);
+            return sunday;
+          })()} />
         </>
       )}
     </>

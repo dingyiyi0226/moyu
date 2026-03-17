@@ -102,7 +102,7 @@ function isSameDay(ts: number, ref: Date): boolean {
 
 type CtxMenu = { x: number; y: number; entry: TimelineEntry } | null;
 
-export function HistoryList({ todayOnly = false, filterDate }: { todayOnly?: boolean; filterDate?: Date } = {}) {
+export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: { todayOnly?: boolean; filterDate?: Date; filterWeekStart?: Date } = {}) {
   const allSessions = useAppStore((s) => s.sessions);
   const allWorkIntervals = useAppStore((s) => s.workIntervals);
   const removeSession = useAppStore((s) => s.removeSession);
@@ -190,12 +190,24 @@ export function HistoryList({ todayOnly = false, filterDate }: { todayOnly?: boo
   const groupedByDay = useMemo((): DayGroup[] => {
     const today = new Date();
     const refDate = filterDate ?? (todayOnly ? today : null);
-    const sessions = refDate
-      ? allSessions.filter((s) => isSameDay(s.startTime, refDate))
-      : allSessions;
-    const workIntervals = refDate
-      ? allWorkIntervals.filter((iv) => isSameDay(iv.start, refDate))
-      : allWorkIntervals;
+
+    let sessions: BreakSession[];
+    let workIntervals: WorkInterval[];
+
+    if (refDate) {
+      sessions = allSessions.filter((s) => isSameDay(s.startTime, refDate));
+      workIntervals = allWorkIntervals.filter((iv) => isSameDay(iv.start, refDate));
+    } else if (filterWeekStart) {
+      const weekEnd = new Date(filterWeekStart);
+      weekEnd.setDate(weekEnd.getDate() + 7);
+      const start = filterWeekStart.getTime();
+      const end = weekEnd.getTime();
+      sessions = allSessions.filter((s) => s.startTime >= start && s.startTime < end);
+      workIntervals = allWorkIntervals.filter((iv) => iv.start >= start && iv.start < end);
+    } else {
+      sessions = allSessions;
+      workIntervals = allWorkIntervals;
+    }
 
     const entries = buildTimelineEntries(workIntervals, sessions);
     const groups: Record<string, TimelineEntry[]> = {};
@@ -214,7 +226,7 @@ export function HistoryList({ todayOnly = false, filterDate }: { todayOnly?: boo
         0,
       ),
     }));
-  }, [allSessions, allWorkIntervals, todayOnly, filterDate]);
+  }, [allSessions, allWorkIntervals, todayOnly, filterDate, filterWeekStart]);
 
   if (allSessions.length === 0 && allWorkIntervals.length === 0) {
     return (
