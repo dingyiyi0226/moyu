@@ -62,6 +62,8 @@ export interface AppState {
   pauseIntervals: PauseInterval[];
   startPause: () => void;
   endPause: () => void;
+  removePauseInterval: (start: number) => void;
+  updatePauseInterval: (oldStart: number, newStart: number, newEnd: number | null) => void;
 
   isOnBreak: boolean;
   currentBreakStart: number | null;
@@ -178,6 +180,20 @@ export const useAppStore = create<AppState>((set, get) => ({
     const updated = [...pauses];
     updated[updated.length - 1] = { ...updated[updated.length - 1], end: Date.now() };
     set({ pauseIntervals: updated });
+    get().saveToDisk();
+  },
+
+  removePauseInterval: (start) => {
+    set((prev) => ({ pauseIntervals: prev.pauseIntervals.filter((iv) => iv.start !== start) }));
+    get().saveToDisk();
+  },
+
+  updatePauseInterval: (oldStart, newStart, newEnd) => {
+    set((prev) => ({
+      pauseIntervals: prev.pauseIntervals.map((iv) =>
+        iv.start === oldStart ? { ...iv, start: newStart, end: newEnd } : iv,
+      ),
+    }));
     get().saveToDisk();
   },
 

@@ -1,8 +1,8 @@
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
-import { useAppStore, type BreakSession, type WorkInterval } from "@/store/appStore";
+import { useAppStore, type BreakSession, type PauseInterval, type WorkInterval } from "@/store/appStore";
 import { formatTimestamp } from "@/lib/timeUtils";
 import { useCurrency } from "@/hooks/useCurrency";
-import { LogIn, LogOut, Check, X } from "lucide-react";
+import { LogIn, LogOut, Check, X, Presentation } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 interface TimeFields { h: string; m: string; s: string }
@@ -52,11 +52,13 @@ function TimeInput({ value, onChange }: { value: TimeFields; onChange: (v: TimeF
 type TimelineEntry =
   | { kind: "clock-in"; time: number; id: string }
   | { kind: "clock-out"; time: number; id: string }
-  | { kind: "break"; session: BreakSession };
+  | { kind: "break"; session: BreakSession }
+  | { kind: "pause"; pause: PauseInterval };
 
 function buildTimelineEntries(
   workIntervals: WorkInterval[],
   sessions: BreakSession[],
+  pauseIntervals: PauseInterval[],
 ): TimelineEntry[] {
   const entries: TimelineEntry[] = [];
 
@@ -71,10 +73,14 @@ function buildTimelineEntries(
     entries.push({ kind: "break", session: s });
   }
 
+  for (const p of pauseIntervals) {
+    entries.push({ kind: "pause", pause: p });
+  }
+
   // Sort newest first
   entries.sort((a, b) => {
-    const ta = a.kind === "break" ? a.session.startTime : a.time;
-    const tb = b.kind === "break" ? b.session.startTime : b.time;
+    const ta = entryTime(a);
+    const tb = entryTime(b);
     return tb - ta;
   });
 
@@ -82,7 +88,9 @@ function buildTimelineEntries(
 }
 
 function entryTime(e: TimelineEntry): number {
-  return e.kind === "break" ? e.session.startTime : e.time;
+  if (e.kind === "break") return e.session.startTime;
+  if (e.kind === "pause") return e.pause.start;
+  return e.time;
 }
 
 interface DayGroup {
@@ -105,11 +113,14 @@ type CtxMenu = { x: number; y: number; entry: TimelineEntry } | null;
 export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: { todayOnly?: boolean; filterDate?: Date; filterWeekStart?: Date } = {}) {
   const allSessions = useAppStore((s) => s.sessions);
   const allWorkIntervals = useAppStore((s) => s.workIntervals);
+  const allPauseIntervals = useAppStore((s) => s.pauseIntervals);
   const removeSession = useAppStore((s) => s.removeSession);
   const removeWorkInterval = useAppStore((s) => s.removeWorkInterval);
+  const removePauseInterval = useAppStore((s) => s.removePauseInterval);
   const updateWorkIntervalStart = useAppStore((s) => s.updateWorkIntervalStart);
   const updateWorkIntervalEnd = useAppStore((s) => s.updateWorkIntervalEnd);
   const updateSession = useAppStore((s) => s.updateSession);
+  const updatePauseInterval = useAppStore((s) => s.updatePauseInterval);
   const { formatCurrency } = useCurrency();
   const [ctxMenu, setCtxMenu] = useState<CtxMenu>(null);
   const [editing, setEditing] = useState<{
@@ -142,6 +153,8 @@ export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: 
     const { entry } = ctxMenu;
     if (entry.kind === "break") {
       removeSession(entry.session.id);
+    } else if (entry.kind === "pause") {
+      removePauseInterval(entry.pause.start);
     } else {
       // clock-in and clock-out both belong to the same WorkInterval
       const start = entry.kind === "clock-in" ? entry.time : allWorkIntervals.find((iv) => iv.end === entry.time)?.start;
@@ -160,6 +173,12 @@ export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: 
         time: tsToFields(entry.session.startTime),
         endTime: tsToFields(entry.session.endTime),
       });
+    } else if (entry.kind === "pause") {
+      setEditing({
+        entry,
+        time: tsToFields(entry.pause.start),
+        endTime: entry.pause.end ? tsToFields(entry.pause.end) : zero,
+      });
     } else {
       setEditing({
         entry,
@@ -177,6 +196,9 @@ export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: 
       updateWorkIntervalStart(entry.time, fieldsToTs(time, entry.time));
     } else if (entry.kind === "clock-out") {
       updateWorkIntervalEnd(entry.time, fieldsToTs(time, entry.time));
+    } else if (entry.kind === "pause") {
+      const newEnd = entry.pause.end ? fieldsToTs(endTime, entry.pause.end) : null;
+      updatePauseInterval(entry.pause.start, fieldsToTs(time, entry.pause.start), newEnd);
     } else {
       updateSession(
         entry.session.id,
@@ -193,10 +215,12 @@ export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: 
 
     let sessions: BreakSession[];
     let workIntervals: WorkInterval[];
+    let pauseIntervals: PauseInterval[];
 
     if (refDate) {
       sessions = allSessions.filter((s) => isSameDay(s.startTime, refDate));
       workIntervals = allWorkIntervals.filter((iv) => isSameDay(iv.start, refDate));
+      pauseIntervals = allPauseIntervals.filter((iv) => isSameDay(iv.start, refDate));
     } else if (filterWeekStart) {
       const weekEnd = new Date(filterWeekStart);
       weekEnd.setDate(weekEnd.getDate() + 7);
@@ -204,12 +228,14 @@ export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: 
       const end = weekEnd.getTime();
       sessions = allSessions.filter((s) => s.startTime >= start && s.startTime < end);
       workIntervals = allWorkIntervals.filter((iv) => iv.start >= start && iv.start < end);
+      pauseIntervals = allPauseIntervals.filter((iv) => iv.start >= start && iv.start < end);
     } else {
       sessions = allSessions;
       workIntervals = allWorkIntervals;
+      pauseIntervals = allPauseIntervals;
     }
 
-    const entries = buildTimelineEntries(workIntervals, sessions);
+    const entries = buildTimelineEntries(workIntervals, sessions, pauseIntervals);
     const groups: Record<string, TimelineEntry[]> = {};
 
     for (const entry of entries) {
@@ -226,7 +252,7 @@ export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: 
         0,
       ),
     }));
-  }, [allSessions, allWorkIntervals, todayOnly, filterDate, filterWeekStart]);
+  }, [allSessions, allWorkIntervals, allPauseIntervals, todayOnly, filterDate, filterWeekStart]);
 
   if (allSessions.length === 0 && allWorkIntervals.length === 0) {
     return (
@@ -299,6 +325,48 @@ export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: 
                           <span>{formatTimestamp(entry.time)}</span>
                           <span className="text-muted-foreground">Clock Out</span>
                         </>
+                      )}
+                    </div>
+                  );
+                }
+
+                if (entry.kind === "pause") {
+                  const { pause } = entry;
+                  const isEditing = editing?.entry.kind === "pause" && editing.entry.pause.start === pause.start;
+                  const endTs = pause.end ?? Date.now();
+                  const totalSec = Math.round((endTs - pause.start) / 1000);
+                  const m = Math.floor(totalSec / 60);
+                  const s = totalSec % 60;
+                  const duration = m > 0 ? `${m}m ${s}s` : `${s}s`;
+
+                  return (
+                    <div
+                      key={`pause-${pause.start}`}
+                      onContextMenu={(e) => handleContextMenu(e, entry)}
+                      className="flex items-center justify-between py-1 text-[12px] cursor-default"
+                    >
+                      {isEditing ? (
+                        <>
+                          <div className="flex items-center gap-1">
+                            <TimeInput value={editing.time} onChange={(v) => setEditing({ ...editing, time: v })} />
+                            <span className="text-muted-foreground">–</span>
+                            <TimeInput value={editing.endTime} onChange={(v) => setEditing({ ...editing, endTime: v })} />
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button onClick={handleEditConfirm} className="text-emerald-600 hover:text-emerald-500"><Check className="size-3" /></button>
+                            <button onClick={() => setEditing(null)} className="text-muted-foreground hover:text-foreground"><X className="size-3" /></button>
+                          </div>
+                        </>
+                      ) : (
+                        <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                          <Presentation className="size-3" />
+                          {formatTimestamp(pause.start)} &middot; {duration}
+                          {!pause.end && (
+                            <span className="text-[10px] px-1 py-px rounded bg-amber-100 dark:bg-amber-950/40 text-amber-600/70 leading-none">
+                              ongoing
+                            </span>
+                          )}
+                        </span>
                       )}
                     </div>
                   );
