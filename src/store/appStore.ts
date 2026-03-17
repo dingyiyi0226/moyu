@@ -153,6 +153,7 @@ export function getDayScheduleForDate(
 }
 
 const STORE_FILE = "moyu-data.json";
+const DB_VERSION = 1;
 
 export const useAppStore = create<AppState>((set, get) => ({
   salary: { amount: 0, period: "annual", currency: "USD" },
@@ -344,6 +345,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       await store.set("dailySchedules", state.dailySchedules);
       await store.set("workIntervals", state.workIntervals);
       await store.set("idleTimeoutSec", state.idleTimeoutSec);
+      await store.set("dbVersion", DB_VERSION);
       await store.save();
     } catch (e) {
       console.error("Failed to save store:", e);
