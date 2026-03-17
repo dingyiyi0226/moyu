@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useAppStore } from "@/store/appStore";
 import { isCurrentlyWorking, perSecondRate, getDayScheduleForDate } from "@/lib/scheduleUtils";
 import { getDateKey } from "@/lib/timeUtils";
-import { Play, LogIn, LogOut, PenLine, Coffee, Clock, CalendarClock } from "lucide-react";
+import { LogIn, LogOut, PenLine, Coffee, Clock, CalendarClock } from "lucide-react";
 import { RangePicker } from "@/components/BreakPicker";
 import { computeDayStats, formatDuration } from "@/lib/timeUtils";
 import { useCurrency } from "@/hooks/useCurrency";
@@ -76,10 +76,10 @@ export function WorkingView() {
           {working && (
             <button
               onClick={() => setBreakStarted(Date.now(), "manual")}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60 transition-colors"
+              className="self-stretch flex items-center px-1.5 rounded-lg text-[11px] font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60 transition-colors"
+              title="Break"
             >
-              <Play className="size-3" />
-              Break
+              <Coffee className="size-3" />
             </button>
           )}
           <button
