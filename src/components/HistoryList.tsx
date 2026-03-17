@@ -335,7 +335,7 @@ export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: 
                   const isEditing = editing?.entry.kind === "pause" && editing.entry.pause.start === pause.start;
                   const isOngoing = pause.end === null;
                   let duration: string | null = null;
-                  if (!isOngoing) {
+                  if (!isOngoing && pause.end !== null) {
                     const totalSec = Math.round((pause.end - pause.start) / 1000);
                     const m = Math.floor(totalSec / 60);
                     const s = totalSec % 60;
