@@ -189,7 +189,7 @@ export function SettingsPanel() {
             if (!day) return null;
 
             return (
-              <div key={idx} className="flex items-center gap-2">
+              <div key={idx} className="flex items-center gap-2 pl-3">
                 {/* Day label / toggle */}
                 {editing ? (
                   <button
@@ -301,7 +301,7 @@ export function SettingsPanel() {
         <label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
           Idle Timeout
         </label>
-        <div className="flex items-center gap-2 mt-2">
+        <div className="flex items-center gap-2 mt-2 pl-3">
           <input
             type="number"
             value={idleInputValue}
