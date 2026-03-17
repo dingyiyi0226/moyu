@@ -1,15 +1,15 @@
 import { useMemo, useState } from "react";
 import { useAppStore } from "@/store/appStore";
-import { useSalaryCalc } from "@/hooks/useSalaryCalc";
 import { DailyChart } from "@/components/DailyChart";
 import { WeeklyChart } from "@/components/WeeklyChart";
 import { computeDayStats, formatDuration } from "@/lib/timeUtils";
+import { useCurrency } from "@/hooks/useCurrency";
 import { HistoryList } from "@/components/HistoryList";
 
 function WeeklySummary({ weekOffset }: { weekOffset: number }) {
   const sessions = useAppStore((s) => s.sessions);
   const workIntervals = useAppStore((s) => s.workIntervals);
-  const { formatCurrency } = useSalaryCalc();
+  const { formatCurrency } = useCurrency();
 
   const stats = useMemo(() => {
     const now = new Date();

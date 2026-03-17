@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { useAppStore, type BreakSession, type WorkInterval } from "@/store/appStore";
-import { useSalaryCalc } from "@/hooks/useSalaryCalc";
 import { formatTimestamp } from "@/lib/timeUtils";
+import { useCurrency } from "@/hooks/useCurrency";
 import { LogIn, LogOut, Check, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -110,7 +110,7 @@ export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: 
   const updateWorkIntervalStart = useAppStore((s) => s.updateWorkIntervalStart);
   const updateWorkIntervalEnd = useAppStore((s) => s.updateWorkIntervalEnd);
   const updateSession = useAppStore((s) => s.updateSession);
-  const { formatCurrency } = useSalaryCalc();
+  const { formatCurrency } = useCurrency();
   const [ctxMenu, setCtxMenu] = useState<CtxMenu>(null);
   const [editing, setEditing] = useState<{
     entry: TimelineEntry;

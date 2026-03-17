@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { useAppStore, isCurrentlyWorking, perSecondRate, getDayScheduleForDate, getDateKey } from "@/store/appStore";
-import { useSalaryCalc } from "@/hooks/useSalaryCalc";
 import { Play, LogIn, LogOut, PenLine, Coffee, Clock, CalendarClock } from "lucide-react";
 import { RangePicker } from "@/components/BreakPicker";
 import { computeDayStats, formatDuration } from "@/lib/timeUtils";
+import { useCurrency } from "@/hooks/useCurrency";
 
 function todayAt(hour: number, minute: number): number {
   const d = new Date();
@@ -22,8 +22,7 @@ export function WorkingView() {
   const addSession = useAppStore((s) => s.addSession);
   const setDailySchedule = useAppStore((s) => s.setDailySchedule);
   const salary = useAppStore((s) => s.salary);
-  const { formatCurrency } = useSalaryCalc();
-
+  const { formatCurrency } = useCurrency();
   const working = isCurrentlyWorking(workIntervals, schedule);
   const isClocked = workIntervals.length > 0 && workIntervals[workIntervals.length - 1].end === null;
 

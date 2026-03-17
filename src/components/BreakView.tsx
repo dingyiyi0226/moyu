@@ -1,13 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useBreakTimer } from "@/hooks/useBreakTimer";
-import { useSalaryCalc } from "@/hooks/useSalaryCalc";
-import { useAppStore } from "@/store/appStore";
+import { useAppStore, perSecondRate } from "@/store/appStore";
 import { Square } from "lucide-react";
 import { formatTimer } from "@/lib/timeUtils";
+import { useCurrency } from "@/hooks/useCurrency";
 
 export function BreakView() {
   const { currentEarnings, currentBreakStart } = useBreakTimer();
-  const { formatCurrency, rate, formatRate } = useSalaryCalc();
+  const { formatCurrency } = useCurrency();
+  const salary = useAppStore((s) => s.salary);
+  const schedule = useAppStore((s) => s.schedule);
+  const rate = useMemo(() => perSecondRate(salary, schedule), [salary, schedule]);
   const setBreakEnded = useAppStore((s) => s.setBreakEnded);
   const [elapsed, setElapsed] = useState(0);
 
@@ -48,7 +51,7 @@ export function BreakView() {
           {formatCurrency(currentEarnings)}
         </p>
         <p className="text-[11px] text-muted-foreground mt-2">
-          {formatRate(rate)}
+          {formatCurrency(rate)}/sec
         </p>
       </div>
     </div>

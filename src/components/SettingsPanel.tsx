@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Pencil, Check } from "lucide-react";
-import { useSalaryCalc } from "@/hooks/useSalaryCalc";
+import { useCurrency } from "@/hooks/useCurrency";
 import {
   useAppStore,
   perSecondRate,
@@ -27,14 +27,13 @@ const selectClass =
 
 export function SettingsPanel() {
   const salary = useAppStore((s) => s.salary);
+  const { formatCurrency } = useCurrency();
   const setSalary = useAppStore((s) => s.setSalary);
   const schedule = useAppStore((s) => s.schedule);
   const setSchedule = useAppStore((s) => s.setSchedule);
   const storeIdleTimeoutSec = useAppStore((s) => s.idleTimeoutSec);
   const setIdleTimeoutSec = useAppStore((s) => s.setIdleTimeoutSec);
   const [idleInputValue, setIdleInputValue] = useState(storeIdleTimeoutSec);
-
-  const { formatCurrency } = useSalaryCalc();
 
   const [editing, setEditing] = useState(false);
   const [days, setDays] = useState<Record<number, DaySchedule>>(() => ({
