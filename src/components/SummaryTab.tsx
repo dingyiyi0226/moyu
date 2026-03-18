@@ -180,6 +180,82 @@ function computeOverallStats(
     });
   }
 
+  // Earliest clock-in (by time of day)
+  let earliestClockInMs = Infinity; // ms since midnight
+  let earliestClockInTs = 0;
+  for (const iv of workIntervals) {
+    const d = new Date(iv.start);
+    const msOfDay = d.getHours() * 3600000 + d.getMinutes() * 60000 + d.getSeconds() * 1000;
+    if (msOfDay < earliestClockInMs) {
+      earliestClockInMs = msOfDay;
+      earliestClockInTs = iv.start;
+    }
+  }
+  // Latest clock-in (by time of day)
+  let latestClockInMs = -1;
+  let latestClockInTs = 0;
+  for (const iv of workIntervals) {
+    const d = new Date(iv.start);
+    const msOfDay = d.getHours() * 3600000 + d.getMinutes() * 60000 + d.getSeconds() * 1000;
+    if (msOfDay > latestClockInMs) {
+      latestClockInMs = msOfDay;
+      latestClockInTs = iv.start;
+    }
+  }
+
+  if (earliestClockInTs > 0) {
+    const d = new Date(earliestClockInTs);
+    records.push({
+      label: "Earliest clock in",
+      value: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      detail: formatDateKey(getDateKey(earliestClockInTs)),
+    });
+  }
+  if (latestClockInTs > 0) {
+    const d = new Date(latestClockInTs);
+    records.push({
+      label: "Latest clock in",
+      value: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      detail: formatDateKey(getDateKey(latestClockInTs)),
+    });
+  }
+
+  // Earliest clock-out (by time of day)
+  let earliestClockOutMs = Infinity;
+  let earliestClockOutTs = 0;
+  // Latest clock-out (by time of day)
+  let latestClockOutMs = -1;
+  let latestClockOutTs = 0;
+  for (const iv of workIntervals) {
+    if (iv.end == null) continue;
+    const d = new Date(iv.end);
+    const msOfDay = d.getHours() * 3600000 + d.getMinutes() * 60000 + d.getSeconds() * 1000;
+    if (msOfDay < earliestClockOutMs) {
+      earliestClockOutMs = msOfDay;
+      earliestClockOutTs = iv.end;
+    }
+    if (msOfDay > latestClockOutMs) {
+      latestClockOutMs = msOfDay;
+      latestClockOutTs = iv.end;
+    }
+  }
+  if (earliestClockOutTs > 0) {
+    const d = new Date(earliestClockOutTs);
+    records.push({
+      label: "Earliest clock out",
+      value: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      detail: formatDateKey(getDateKey(earliestClockOutTs)),
+    });
+  }
+  if (latestClockOutTs > 0) {
+    const d = new Date(latestClockOutTs);
+    records.push({
+      label: "Latest clock out",
+      value: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      detail: formatDateKey(getDateKey(latestClockOutTs)),
+    });
+  }
+
   // Longest break interval
   let longestBreak = 0;
   let longestBreakTs = 0;
@@ -256,7 +332,7 @@ export function SummaryTab() {
   }
 
   return (
-    <>
+    <div className="overflow-y-auto max-h-[calc(100vh-100px)]">
       <AllTimeSummary />
       <div className="h-px bg-border mx-4" />
       <div className="px-4 py-3 space-y-2">
@@ -282,6 +358,6 @@ export function SummaryTab() {
         </div>
       ))}
       </div>
-    </>
+    </div>
   );
 }
