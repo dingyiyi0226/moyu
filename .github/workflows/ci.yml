@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  check:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'yarn'
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Install frontend dependencies
+        run: yarn install
+
+      - name: Typecheck
+        run: yarn typecheck
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          shared-key: release
+
+      - name: Clippy
+        working-directory: src-tauri
+        run: cargo clippy -- -D warnings
