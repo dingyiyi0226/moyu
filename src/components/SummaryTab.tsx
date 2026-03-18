@@ -75,8 +75,8 @@ export function SummaryTab() {
       maxDayRecord(dayStats, "breakSec", "Most break in a day"),
       maxWeekRecord(weekMap, "breakSec", "Most break in a week"),
       longestWorkWithoutBreak(workIntervals, sessions),
-      ...timeOfDayRecords(workIntervals.map((iv) => iv.start), "Earliest clock in", "Latest clock in"),
-      ...timeOfDayRecords(clockOutTs, "Earliest clock out", "Latest clock out"),
+      timeOfDayRecords(workIntervals.map((iv) => iv.start), "Earliest clock in", "Latest clock in")[0],
+      timeOfDayRecords(clockOutTs, "Earliest clock out", "Latest clock out")[1],
       longestSingleBreak(sessions),
     ].filter((r): r is StatRecord => r != null);
   }, [sessions, workIntervals, pauseIntervals]);
