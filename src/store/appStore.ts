@@ -91,6 +91,17 @@ export interface AppState {
 
 const STORE_FILE = "moyu-data.json";
 const DB_VERSION = 1;
+const SAVE_DEBOUNCE_MS = 500;
+
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
+function debouncedSave(saveFn: () => Promise<void>) {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    saveFn();
+  }, SAVE_DEBOUNCE_MS);
+}
 
 export const useAppStore = create<AppState>((set, get) => ({
   salary: { amount: 0, period: "annual", currency: "USD" },
@@ -107,18 +118,18 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setSalary: (salary) => {
     set({ salary });
-    get().saveToDisk();
+    debouncedSave(() => get().saveToDisk());
   },
 
   setSchedule: (schedule) => {
     set({ schedule });
-    get().saveToDisk();
+    debouncedSave(() => get().saveToDisk());
   },
 
   setIdleTimeoutSec: (sec) => {
     set({ idleTimeoutSec: sec });
     invoke("set_idle_timeout", { seconds: sec });
-    get().saveToDisk();
+    debouncedSave(() => get().saveToDisk());
   },
 
   clockIn: (at?: number) => {
@@ -139,7 +150,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
       set(updates);
       invoke("set_clocked_in", { clocked: true });
-      get().saveToDisk();
+      debouncedSave(() => get().saveToDisk());
     }
   },
 
@@ -161,7 +172,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
       set({ workIntervals: updated, ...pauseUpdates });
       invoke("set_clocked_in", { clocked: false });
-      get().saveToDisk();
+      debouncedSave(() => get().saveToDisk());
     }
   },
 
@@ -171,7 +182,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     const isPaused = pauses.length > 0 && pauses[pauses.length - 1].end === null;
     if (isPaused) return;
     set({ pauseIntervals: [...pauses, { start: Date.now(), end: null }] });
-    get().saveToDisk();
+    debouncedSave(() => get().saveToDisk());
   },
 
   endPause: () => {
@@ -180,12 +191,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     const updated = [...pauses];
     updated[updated.length - 1] = { ...updated[updated.length - 1], end: Date.now() };
     set({ pauseIntervals: updated });
-    get().saveToDisk();
+    debouncedSave(() => get().saveToDisk());
   },
 
   removePauseInterval: (start) => {
     set((prev) => ({ pauseIntervals: prev.pauseIntervals.filter((iv) => iv.start !== start) }));
-    get().saveToDisk();
+    debouncedSave(() => get().saveToDisk());
   },
 
   updatePauseInterval: (oldStart, newStart, newEnd) => {
@@ -194,7 +205,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         iv.start === oldStart ? { ...iv, start: newStart, end: newEnd } : iv,
       ),
     }));
-    get().saveToDisk();
+    debouncedSave(() => get().saveToDisk());
   },
 
   setBreakStarted: (timestamp, reason) => {
@@ -229,7 +240,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         currentEarnings: 0,
         sessions: [...prev.sessions, session],
       }));
-      get().saveToDisk();
+      debouncedSave(() => get().saveToDisk());
     } else {
       set({ isOnBreak: false, currentBreakStart: null, currentBreakReason: null, currentEarnings: 0 });
     }
@@ -241,17 +252,17 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   addSession: (session) => {
     set((prev) => ({ sessions: [...prev.sessions, session] }));
-    get().saveToDisk();
+    debouncedSave(() => get().saveToDisk());
   },
 
   removeSession: (id) => {
     set((prev) => ({ sessions: prev.sessions.filter((s) => s.id !== id) }));
-    get().saveToDisk();
+    debouncedSave(() => get().saveToDisk());
   },
 
   removeWorkInterval: (start) => {
     set((prev) => ({ workIntervals: prev.workIntervals.filter((iv) => iv.start !== start) }));
-    get().saveToDisk();
+    debouncedSave(() => get().saveToDisk());
   },
 
   updateWorkIntervalStart: (oldStart, newStart) => {
@@ -260,7 +271,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         iv.start === oldStart ? { ...iv, start: newStart } : iv,
       ),
     }));
-    get().saveToDisk();
+    debouncedSave(() => get().saveToDisk());
   },
 
   updateWorkIntervalEnd: (oldEnd, newEnd) => {
@@ -269,7 +280,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         iv.end === oldEnd ? { ...iv, end: newEnd } : iv,
       ),
     }));
-    get().saveToDisk();
+    debouncedSave(() => get().saveToDisk());
   },
 
   updateSession: (id, startTime, endTime) => {
@@ -281,12 +292,12 @@ export const useAppStore = create<AppState>((set, get) => ({
         s.id === id ? { ...s, startTime, endTime, earnings } : s,
       ),
     }));
-    get().saveToDisk();
+    debouncedSave(() => get().saveToDisk());
   },
 
   setDailySchedule: (dateKey, schedule) => {
     set((prev) => ({ dailySchedules: { ...prev.dailySchedules, [dateKey]: schedule } }));
-    get().saveToDisk();
+    debouncedSave(() => get().saveToDisk());
   },
 
   loadFromDisk: async () => {
