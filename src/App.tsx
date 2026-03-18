@@ -4,9 +4,10 @@ import { useSystemEvents } from "@/hooks/useSystemEvents";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { DailyTab } from "@/components/DailyTab";
 import { WeeklyTab } from "@/components/WeeklyTab";
-import { Settings, ChevronLeft, Clock, BarChart3 } from "lucide-react";
+import { SummaryTab } from "@/components/SummaryTab";
+import { Settings, ChevronLeft, Clock, BarChart3, Trophy } from "lucide-react";
 
-type Tab = "daily" | "weekly";
+type Tab = "daily" | "weekly" | "summary";
 
 const tabBtnClass = (active: boolean) =>
   `flex items-center gap-1 px-3 py-1.5 text-[11px] font-medium transition-colors ${
@@ -64,7 +65,7 @@ function App() {
               onOpenSettings={() => setShowSettings(true)}
               initialDate={dailyInitialDate}
             />
-          ) : (
+          ) : tab === "weekly" ? (
             <WeeklyTab
               onBarClick={(date: Date) => {
                 setDailyInitialDate(date);
@@ -72,6 +73,8 @@ function App() {
                 setTab("daily");
               }}
             />
+          ) : (
+            <SummaryTab />
           )}
 
           {/* Tab bar */}
@@ -84,6 +87,10 @@ function App() {
             <button className={tabBtnClass(tab === "weekly")} onClick={() => setTab("weekly")}>
               <BarChart3 className="size-3" />
               Weekly
+            </button>
+            <button className={tabBtnClass(tab === "summary")} onClick={() => setTab("summary")}>
+              <Trophy className="size-3" />
+              Summary
             </button>
           </div>
         </>
