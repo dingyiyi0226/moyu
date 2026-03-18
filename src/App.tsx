@@ -19,6 +19,8 @@ function App() {
   const loadFromDisk = useAppStore((s) => s.loadFromDisk);
   const [showSettings, setShowSettings] = useState(false);
   const [tab, setTab] = useState<Tab>("daily");
+  const [dailyInitialDate, setDailyInitialDate] = useState<Date | null>(null);
+  const [dailyKey, setDailyKey] = useState(0);
   useSystemEvents();
 
   useEffect(() => {
@@ -57,15 +59,25 @@ function App() {
           </div>
 
           {tab === "daily" ? (
-            <DailyTab onOpenSettings={() => setShowSettings(true)} />
+            <DailyTab
+              key={dailyKey}
+              onOpenSettings={() => setShowSettings(true)}
+              initialDate={dailyInitialDate}
+            />
           ) : (
-            <WeeklyTab />
+            <WeeklyTab
+              onBarClick={(date: Date) => {
+                setDailyInitialDate(date);
+                setDailyKey((k) => k + 1);
+                setTab("daily");
+              }}
+            />
           )}
 
           {/* Tab bar */}
           <div className="h-px bg-border" />
           <div className="flex items-center justify-center gap-4 py-1">
-            <button className={tabBtnClass(tab === "daily")} onClick={() => setTab("daily")}>
+            <button className={tabBtnClass(tab === "daily")} onClick={() => { setDailyInitialDate(null); setTab("daily"); }}>
               <Clock className="size-3" />
               Daily
             </button>

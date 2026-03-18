@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { useAppStore } from "@/store/appStore";
-import { DailyChart } from "@/components/DailyChart";
 import { WeeklyChart } from "@/components/WeeklyChart";
 import { computeDayStats, formatDuration } from "@/lib/timeUtils";
 import { useCurrency } from "@/hooks/useCurrency";
@@ -62,39 +61,23 @@ function WeeklySummary({ weekOffset }: { weekOffset: number }) {
   );
 }
 
-export function WeeklyTab() {
+export function WeeklyTab({ onBarClick }: { onBarClick?: (date: Date) => void }) {
   const sessions = useAppStore((s) => s.sessions);
-  const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
 
   return (
     <>
       <WeeklySummary weekOffset={weekOffset} />
       <div className="h-px bg-border mx-4" />
-      {selectedDay ? (
-        <>
-          <DailyChart
-            sessions={sessions}
-            fixedDate={selectedDay}
-            onPrev={() => { const d = new Date(selectedDay); d.setDate(d.getDate() - 1); setSelectedDay(d); }}
-            onNext={() => { const d = new Date(selectedDay); d.setDate(d.getDate() + 1); setSelectedDay(d); }}
-          />
-          <div className="h-px bg-border mx-4" />
-          <HistoryList filterDate={selectedDay} />
-        </>
-      ) : (
-        <>
-          <WeeklyChart sessions={sessions} onBarClick={setSelectedDay} weekOffset={weekOffset} onWeekOffsetChange={setWeekOffset} />
-          <div className="h-px bg-border mx-4" />
-          <HistoryList filterWeekStart={(() => {
-            const now = new Date();
-            const sunday = new Date(now);
-            sunday.setHours(0, 0, 0, 0);
-            sunday.setDate(now.getDate() - now.getDay() + weekOffset * 7);
-            return sunday;
-          })()} />
-        </>
-      )}
+      <WeeklyChart sessions={sessions} onBarClick={onBarClick} weekOffset={weekOffset} onWeekOffsetChange={setWeekOffset} />
+      <div className="h-px bg-border mx-4" />
+      <HistoryList filterWeekStart={(() => {
+        const now = new Date();
+        const sunday = new Date(now);
+        sunday.setHours(0, 0, 0, 0);
+        sunday.setDate(now.getDate() - now.getDay() + weekOffset * 7);
+        return sunday;
+      })()} />
     </>
   );
 }
