@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAppStore } from "@/store/appStore";
 import { useSystemEvents } from "@/hooks/useSystemEvents";
+import { useTrayTimer } from "@/hooks/useTrayTimer";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { DailyTab } from "@/components/DailyTab";
 import { WeeklyTab } from "@/components/WeeklyTab";
@@ -23,6 +24,7 @@ function App() {
   const [dailyInitialDate, setDailyInitialDate] = useState<Date | null>(null);
   const [dailyKey, setDailyKey] = useState(0);
   useSystemEvents();
+  useTrayTimer();
 
   useEffect(() => {
     loadFromDisk();
