@@ -64,9 +64,10 @@ fn run_timer(app: AppHandle, state: Arc<Mutex<BreakTimerState>>, gen: u64) {
 pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
     let show_i = MenuItem::with_id(app, "show", "Show", true, None::<&str>)?;
     let separator = PredefinedMenuItem::separator(app)?;
+    let about_i = MenuItem::with_id(app, "about", "About Moyu", true, None::<&str>)?;
     let update_i = MenuItem::with_id(app, "check_update", "Check for Updates...", true, None::<&str>)?;
     let quit_i = MenuItem::with_id(app, "quit", "Quit Moyu", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&show_i, &separator, &update_i, &quit_i])?;
+    let menu = Menu::with_items(app, &[&show_i, &separator, &about_i, &update_i, &quit_i])?;
 
     let _tray = TrayIconBuilder::with_id("moyu-tray")
         .icon(app.default_window_icon().unwrap().clone())
@@ -78,6 +79,10 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
         .on_menu_event(|app, event| match event.id.as_ref() {
             "quit" => {
                 app.exit(0);
+            }
+            "about" => {
+                let version = app.package_info().version.to_string();
+                updater::alert::show_message("About Moyu", &format!("Moyu v{}", version));
             }
             "check_update" => {
                 updater::check_for_update(app);

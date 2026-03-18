@@ -4,7 +4,7 @@ use tauri_plugin_updater::UpdaterExt;
 // macOS-only: use native NSAlert to display the app icon and avoid repositioning the tray panel.
 // rfd / tauri-plugin-dialog falls back to CFUserNotificationDisplayAlert (no custom icon) when
 // there is no parent window, and setting a parent would pull the NSPanel to the screen centre.
-mod alert {
+pub(crate) mod alert {
     use objc2::MainThreadMarker;
     use objc2::rc::autoreleasepool;
     use objc2_app_kit::{
