@@ -41,24 +41,9 @@ export function perSecondRate(salary: SalaryConfig, schedule?: WorkSchedule): nu
   }
 }
 
-export function isWithinWorkSchedule(schedule: WorkSchedule): boolean {
-  const now = new Date();
-  const day = now.getDay();
-  const daySchedule = schedule.days[day];
-  if (!daySchedule?.enabled) return false;
-  const minuteOfDay = now.getHours() * 60 + now.getMinutes();
-  return minuteOfDay >= daySchedule.startMinute && minuteOfDay < daySchedule.endMinute;
-}
-
-/** Returns true if the user is currently working: clocked in (last interval open), or within schedule. */
-export function isCurrentlyWorking(
-  workIntervals: WorkInterval[],
-  schedule: WorkSchedule,
-): boolean {
-  if (workIntervals.length > 0) {
-    return workIntervals[workIntervals.length - 1].end === null;
-  }
-  return isWithinWorkSchedule(schedule);
+/** Returns true if the user is currently clocked in (last interval open). */
+export function isCurrentlyWorking(workIntervals: WorkInterval[]): boolean {
+  return workIntervals.length > 0 && workIntervals[workIntervals.length - 1].end === null;
 }
 
 /** Get the schedule for a specific date: use daily snapshot if available, else fall back to weekday template. */

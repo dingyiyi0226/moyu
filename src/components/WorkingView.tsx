@@ -28,8 +28,8 @@ export function WorkingView() {
   const startPause = useAppStore((s) => s.startPause);
   const endPause = useAppStore((s) => s.endPause);
   const { formatCurrency } = useCurrency();
-  const working = isCurrentlyWorking(workIntervals, schedule);
-  const isClocked = workIntervals.length > 0 && workIntervals[workIntervals.length - 1].end === null;
+  const isWorking = isCurrentlyWorking(workIntervals);
+
   const isPaused = pauseIntervals.length > 0 && pauseIntervals[pauseIntervals.length - 1].end === null;
 
   const [customPicker, setCustomPicker] = useState<"choose" | "break" | "work" | "schedule" | null>(null);
@@ -50,17 +50,17 @@ export function WorkingView() {
         <div className="flex items-center gap-2">
           <span
             className={`inline-flex size-2 rounded-full ${
-              working
+              isWorking
                 ? "bg-emerald-400 dark:bg-emerald-500"
                 : "bg-zinc-300 dark:bg-zinc-600"
             }`}
           />
           <span className="text-xs font-medium text-muted-foreground">
-            {working ? "Working" : "Off hours"}
+            {isWorking ? "Working" : "Off hours"}
           </span>
         </div>
         <div className="flex items-center gap-1.5">
-          {isClocked ? (
+          {isWorking ? (
             <button
               onClick={() => clockOut()}
               className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium text-orange-600 bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/40 dark:hover:bg-orange-950/60 transition-colors"
@@ -77,7 +77,7 @@ export function WorkingView() {
               Clock In
             </button>
           )}
-          {isClocked && (
+          {isWorking && (
             <button
               onClick={() => (isPaused ? endPause() : startPause())}
               className={`self-stretch flex items-center px-1.5 rounded-lg text-[11px] font-medium transition-colors ${
@@ -90,7 +90,7 @@ export function WorkingView() {
               <Presentation className="size-3" />
             </button>
           )}
-          {working && !isPaused && (
+          {isWorking && !isPaused && (
             <button
               onClick={() => setBreakStarted(Date.now(), "manual")}
               className="self-stretch flex items-center px-1.5 rounded-lg text-[11px] font-medium text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60 transition-colors"
