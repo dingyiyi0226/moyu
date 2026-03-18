@@ -4,7 +4,8 @@ import { isCurrentlyWorking, perSecondRate, getDayScheduleForDate } from "@/lib/
 import { getDateKey } from "@/lib/timeUtils";
 import { LogIn, LogOut, PenLine, Coffee, Clock, CalendarClock, Presentation } from "lucide-react";
 import { RangePicker } from "@/components/BreakPicker";
-import { computeDayStats, formatDuration } from "@/lib/timeUtils";
+import { formatDuration } from "@/lib/timeUtils";
+import { computeDayStats } from "@/lib/statsUtils";
 import { useCurrency } from "@/hooks/useCurrency";
 
 function todayAt(hour: number, minute: number): number {

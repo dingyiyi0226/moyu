@@ -93,46 +93,6 @@ export function getPauseIntervalsForDate(
   });
 }
 
-export function computeDayStats(
-  sessions: BreakSession[],
-  workIntervals: WorkInterval[],
-  date: Date,
-  pauseIntervals?: PauseInterval[],
-): { breakSec: number; workSec: number; pauseSec: number; earnings: number; breakCount: number } {
-  const dateKey = getDateKey(date.getTime());
-
-  let breakSec = 0;
-  let earnings = 0;
-  let breakCount = 0;
-  for (const s of sessions) {
-    if (getDateKey(s.startTime) === dateKey) {
-      breakSec += Math.round((s.endTime - s.startTime) / 1000);
-      earnings += s.earnings;
-      breakCount++;
-    }
-  }
-
-  let workSec = 0;
-  const dayIntervals = getWorkIntervalsForDate(workIntervals, date);
-  for (const iv of dayIntervals) {
-    const end = iv.end ?? Date.now();
-    workSec += Math.round((end - iv.start) / 1000);
-  }
-
-  let pauseSec = 0;
-  if (pauseIntervals) {
-    const dayPauses = getPauseIntervalsForDate(pauseIntervals, date);
-    for (const iv of dayPauses) {
-      const end = iv.end ?? Date.now();
-      pauseSec += Math.round((end - iv.start) / 1000);
-    }
-  }
-
-  workSec = Math.max(0, workSec - breakSec);
-
-  return { breakSec, workSec, pauseSec, earnings, breakCount };
-}
-
 /** Convert fractional hour to % position within the schedule bar */
 export function toPercent(hour: number, schedStart: number, schedEnd: number): number {
   const total = schedEnd - schedStart;

@@ -1,281 +1,20 @@
 import { useMemo } from "react";
 import { useAppStore } from "@/store/appStore";
-import type { BreakSession, WorkInterval, PauseInterval } from "@/store/appStore";
+import { formatDuration } from "@/lib/timeUtils";
 import {
+  computeAllTimeTotals,
   computeDayStats,
-  formatDuration,
-  getDateKey,
-} from "@/lib/timeUtils";
+  getAllDateKeys,
+  getWeekKey,
+  longestSingleBreak,
+  longestWorkWithoutBreak,
+  maxDayRecord,
+  maxWeekRecord,
+  timeOfDayRecords,
+  type KeyedDayStats,
+  type StatRecord,
+} from "@/lib/statsUtils";
 import { useCurrency } from "@/hooks/useCurrency";
-
-interface StatRecord {
-  label: string;
-  value: string;
-  detail?: string;
-}
-
-/** Collect all unique date keys from work intervals and break sessions. */
-function getAllDateKeys(
-  workIntervals: WorkInterval[],
-  sessions: BreakSession[],
-): string[] {
-  const keys = new Set<string>();
-  for (const iv of workIntervals) {
-    keys.add(getDateKey(iv.start));
-    if (iv.end) keys.add(getDateKey(iv.end));
-  }
-  for (const s of sessions) {
-    keys.add(getDateKey(s.startTime));
-  }
-  return Array.from(keys).sort();
-}
-
-/** Get the ISO week key "YYYY-Www" for a date string "YYYY-MM-DD". */
-function getWeekKey(dateKey: string): string {
-  const d = new Date(dateKey + "T00:00:00");
-  // Find the Monday of the week
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is Sunday
-  const monday = new Date(d);
-  monday.setDate(diff);
-  const fmt = (dt: Date) =>
-    dt.toLocaleDateString([], { month: "short", day: "numeric" });
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  return `${fmt(monday)} – ${fmt(sunday)}`;
-}
-
-function formatDateKey(dateKey: string): string {
-  const d = new Date(dateKey + "T00:00:00");
-  return d.toLocaleDateString([], {
-    month: "short",
-    day: "numeric",
-    weekday: "short",
-  });
-}
-
-function computeOverallStats(
-  sessions: BreakSession[],
-  workIntervals: WorkInterval[],
-  pauseIntervals: PauseInterval[],
-): StatRecord[] {
-  const dateKeys = getAllDateKeys(workIntervals, sessions);
-  if (dateKeys.length === 0) return [];
-
-  // Per-day stats
-  const dayStats: { key: string; workSec: number; breakSec: number }[] = [];
-  for (const dk of dateKeys) {
-    const date = new Date(dk + "T00:00:00");
-    const stats = computeDayStats(sessions, workIntervals, date, pauseIntervals);
-    dayStats.push({ key: dk, workSec: stats.workSec, breakSec: stats.breakSec });
-  }
-
-  // Per-week aggregation
-  const weekMap = new Map<string, { workSec: number; breakSec: number }>();
-  for (const ds of dayStats) {
-    const wk = getWeekKey(ds.key);
-    const existing = weekMap.get(wk) ?? { workSec: 0, breakSec: 0 };
-    existing.workSec += ds.workSec;
-    existing.breakSec += ds.breakSec;
-    weekMap.set(wk, existing);
-  }
-
-  const records: StatRecord[] = [];
-
-  // Most working time in a day
-  const maxWorkDay = dayStats.reduce(
-    (best, d) => (d.workSec > best.workSec ? d : best),
-    dayStats[0],
-  );
-  if (maxWorkDay.workSec > 0) {
-    records.push({
-      label: "Most work in a day",
-      value: formatDuration(maxWorkDay.workSec),
-      detail: formatDateKey(maxWorkDay.key),
-    });
-  }
-
-  // Most working time in a week
-  let maxWorkWeek = { key: "", workSec: 0 };
-  for (const [wk, s] of weekMap) {
-    if (s.workSec > maxWorkWeek.workSec) {
-      maxWorkWeek = { key: wk, workSec: s.workSec };
-    }
-  }
-  if (maxWorkWeek.workSec > 0) {
-    records.push({
-      label: "Most work in a week",
-      value: formatDuration(maxWorkWeek.workSec),
-      detail: maxWorkWeek.key,
-    });
-  }
-
-  // Most break time in a day
-  const maxBreakDay = dayStats.reduce(
-    (best, d) => (d.breakSec > best.breakSec ? d : best),
-    dayStats[0],
-  );
-  if (maxBreakDay.breakSec > 0) {
-    records.push({
-      label: "Most break in a day",
-      value: formatDuration(maxBreakDay.breakSec),
-      detail: formatDateKey(maxBreakDay.key),
-    });
-  }
-
-  // Most break time in a week
-  let maxBreakWeek = { key: "", breakSec: 0 };
-  for (const [wk, s] of weekMap) {
-    if (s.breakSec > maxBreakWeek.breakSec) {
-      maxBreakWeek = { key: wk, breakSec: s.breakSec };
-    }
-  }
-  if (maxBreakWeek.breakSec > 0) {
-    records.push({
-      label: "Most break in a week",
-      value: formatDuration(maxBreakWeek.breakSec),
-      detail: maxBreakWeek.key,
-    });
-  }
-
-  // Longest working interval without a break
-  // For each work interval, find gaps between breaks to get continuous work stretches
-  let longestWorkStretch = 0;
-  let longestWorkStretchTs = 0;
-  for (const iv of workIntervals) {
-    const ivEnd = iv.end ?? Date.now();
-    // Find all breaks that overlap this work interval
-    const overlapping = sessions
-      .filter((s) => s.startTime < ivEnd && s.endTime > iv.start)
-      .sort((a, b) => a.startTime - b.startTime);
-
-    const updateMax = (dur: number, ts: number) => {
-      if (dur > longestWorkStretch) {
-        longestWorkStretch = dur;
-        longestWorkStretchTs = ts;
-      }
-    };
-
-    if (overlapping.length === 0) {
-      updateMax(ivEnd - iv.start, iv.start);
-    } else {
-      updateMax(overlapping[0].startTime - iv.start, iv.start);
-      for (let i = 1; i < overlapping.length; i++) {
-        updateMax(
-          overlapping[i].startTime - overlapping[i - 1].endTime,
-          overlapping[i - 1].endTime,
-        );
-      }
-      updateMax(
-        ivEnd - overlapping[overlapping.length - 1].endTime,
-        overlapping[overlapping.length - 1].endTime,
-      );
-    }
-  }
-  if (longestWorkStretch > 0) {
-    records.push({
-      label: "Longest work without break",
-      value: formatDuration(Math.round(longestWorkStretch / 1000)),
-      detail: formatDateKey(getDateKey(longestWorkStretchTs)),
-    });
-  }
-
-  // Earliest clock-in (by time of day)
-  let earliestClockInMs = Infinity; // ms since midnight
-  let earliestClockInTs = 0;
-  for (const iv of workIntervals) {
-    const d = new Date(iv.start);
-    const msOfDay = d.getHours() * 3600000 + d.getMinutes() * 60000 + d.getSeconds() * 1000;
-    if (msOfDay < earliestClockInMs) {
-      earliestClockInMs = msOfDay;
-      earliestClockInTs = iv.start;
-    }
-  }
-  // Latest clock-in (by time of day)
-  let latestClockInMs = -1;
-  let latestClockInTs = 0;
-  for (const iv of workIntervals) {
-    const d = new Date(iv.start);
-    const msOfDay = d.getHours() * 3600000 + d.getMinutes() * 60000 + d.getSeconds() * 1000;
-    if (msOfDay > latestClockInMs) {
-      latestClockInMs = msOfDay;
-      latestClockInTs = iv.start;
-    }
-  }
-
-  if (earliestClockInTs > 0) {
-    const d = new Date(earliestClockInTs);
-    records.push({
-      label: "Earliest clock in",
-      value: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      detail: formatDateKey(getDateKey(earliestClockInTs)),
-    });
-  }
-  if (latestClockInTs > 0) {
-    const d = new Date(latestClockInTs);
-    records.push({
-      label: "Latest clock in",
-      value: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      detail: formatDateKey(getDateKey(latestClockInTs)),
-    });
-  }
-
-  // Earliest clock-out (by time of day)
-  let earliestClockOutMs = Infinity;
-  let earliestClockOutTs = 0;
-  // Latest clock-out (by time of day)
-  let latestClockOutMs = -1;
-  let latestClockOutTs = 0;
-  for (const iv of workIntervals) {
-    if (iv.end == null) continue;
-    const d = new Date(iv.end);
-    const msOfDay = d.getHours() * 3600000 + d.getMinutes() * 60000 + d.getSeconds() * 1000;
-    if (msOfDay < earliestClockOutMs) {
-      earliestClockOutMs = msOfDay;
-      earliestClockOutTs = iv.end;
-    }
-    if (msOfDay > latestClockOutMs) {
-      latestClockOutMs = msOfDay;
-      latestClockOutTs = iv.end;
-    }
-  }
-  if (earliestClockOutTs > 0) {
-    const d = new Date(earliestClockOutTs);
-    records.push({
-      label: "Earliest clock out",
-      value: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      detail: formatDateKey(getDateKey(earliestClockOutTs)),
-    });
-  }
-  if (latestClockOutTs > 0) {
-    const d = new Date(latestClockOutTs);
-    records.push({
-      label: "Latest clock out",
-      value: d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      detail: formatDateKey(getDateKey(latestClockOutTs)),
-    });
-  }
-
-  // Longest break interval
-  let longestBreak = 0;
-  let longestBreakTs = 0;
-  for (const s of sessions) {
-    const dur = s.endTime - s.startTime;
-    if (dur > longestBreak) {
-      longestBreak = dur;
-      longestBreakTs = s.startTime;
-    }
-  }
-  if (longestBreak > 0) {
-    records.push({
-      label: "Longest single break",
-      value: formatDuration(Math.round(longestBreak / 1000)),
-      detail: formatDateKey(getDateKey(longestBreakTs)),
-    });
-  }
-
-  return records;
-}
 
 function AllTimeSummary() {
   const sessions = useAppStore((s) => s.sessions);
@@ -283,20 +22,10 @@ function AllTimeSummary() {
   const pauseIntervals = useAppStore((s) => s.pauseIntervals);
   const { formatCurrency } = useCurrency();
 
-  const totals = useMemo(() => {
-    const dateKeys = getAllDateKeys(workIntervals, sessions);
-    let totalWorkSec = 0;
-    let totalBreakSec = 0;
-    let totalEarnings = 0;
-    for (const dk of dateKeys) {
-      const date = new Date(dk + "T00:00:00");
-      const stats = computeDayStats(sessions, workIntervals, date, pauseIntervals);
-      totalWorkSec += stats.workSec;
-      totalBreakSec += stats.breakSec;
-      totalEarnings += stats.earnings;
-    }
-    return { earnings: totalEarnings, workDuration: totalWorkSec, breakDuration: totalBreakSec };
-  }, [sessions, workIntervals, pauseIntervals]);
+  const totals = useMemo(
+    () => computeAllTimeTotals(sessions, workIntervals, pauseIntervals),
+    [sessions, workIntervals, pauseIntervals],
+  );
 
   return (
     <div className="px-4 py-3 text-center">
@@ -318,10 +47,40 @@ export function SummaryTab() {
   const workIntervals = useAppStore((s) => s.workIntervals);
   const pauseIntervals = useAppStore((s) => s.pauseIntervals);
 
-  const stats = useMemo(
-    () => computeOverallStats(sessions, workIntervals, pauseIntervals),
-    [sessions, workIntervals, pauseIntervals],
-  );
+  const stats = useMemo(() => {
+    const dateKeys = getAllDateKeys(workIntervals, sessions);
+    if (dateKeys.length === 0) return [];
+
+    const dayStats: KeyedDayStats[] = dateKeys.map((dk) => {
+      const date = new Date(dk + "T00:00:00");
+      const s = computeDayStats(sessions, workIntervals, date, pauseIntervals);
+      return { key: dk, workSec: s.workSec, breakSec: s.breakSec };
+    });
+
+    const weekMap = new Map<string, { workSec: number; breakSec: number }>();
+    for (const ds of dayStats) {
+      const wk = getWeekKey(ds.key);
+      const existing = weekMap.get(wk) ?? { workSec: 0, breakSec: 0 };
+      existing.workSec += ds.workSec;
+      existing.breakSec += ds.breakSec;
+      weekMap.set(wk, existing);
+    }
+
+    const clockOutTs = workIntervals
+      .filter((iv): iv is typeof iv & { end: number } => iv.end != null)
+      .map((iv) => iv.end);
+
+    return [
+      maxDayRecord(dayStats, "workSec", "Most work in a day"),
+      maxWeekRecord(weekMap, "workSec", "Most work in a week"),
+      maxDayRecord(dayStats, "breakSec", "Most break in a day"),
+      maxWeekRecord(weekMap, "breakSec", "Most break in a week"),
+      longestWorkWithoutBreak(workIntervals, sessions),
+      ...timeOfDayRecords(workIntervals.map((iv) => iv.start), "Earliest clock in", "Latest clock in"),
+      ...timeOfDayRecords(clockOutTs, "Earliest clock out", "Latest clock out"),
+      longestSingleBreak(sessions),
+    ].filter((r): r is StatRecord => r != null);
+  }, [sessions, workIntervals, pauseIntervals]);
 
   if (stats.length === 0) {
     return (

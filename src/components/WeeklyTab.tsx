@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useAppStore } from "@/store/appStore";
 import { WeeklyChart } from "@/components/WeeklyChart";
-import { computeDayStats, formatDuration } from "@/lib/timeUtils";
+import { formatDuration } from "@/lib/timeUtils";
+import { aggregateWeekStats, getWeekSunday } from "@/lib/statsUtils";
 import { useCurrency } from "@/hooks/useCurrency";
 import { HistoryList } from "@/components/HistoryList";
 
@@ -12,20 +13,11 @@ function WeeklySummary({ weekOffset }: { weekOffset: number }) {
   const { formatCurrency } = useCurrency();
 
   const stats = useMemo(() => {
-    const now = new Date();
-    const dayOfWeek = now.getDay();
-    const sunday = new Date(now);
-    sunday.setHours(0, 0, 0, 0);
-    sunday.setDate(now.getDate() - dayOfWeek + weekOffset * 7);
-
+    const days = aggregateWeekStats(sessions, workIntervals, weekOffset, pauseIntervals);
     let totalWorkSec = 0;
     let totalBreakSec = 0;
     let totalEarnings = 0;
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(sunday);
-      date.setDate(sunday.getDate() + i);
-      if (date > now) break;
-      const day = computeDayStats(sessions, workIntervals, date, pauseIntervals);
+    for (const day of days) {
       totalWorkSec += day.workSec;
       totalBreakSec += day.breakSec;
       totalEarnings += day.earnings;
@@ -35,11 +27,7 @@ function WeeklySummary({ weekOffset }: { weekOffset: number }) {
 
   const weekLabel = useMemo(() => {
     if (weekOffset === 0) return "This Week";
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const sunday = new Date(today);
-    sunday.setHours(0, 0, 0, 0);
-    sunday.setDate(today.getDate() - dayOfWeek + weekOffset * 7);
+    const sunday = getWeekSunday(weekOffset);
     const saturday = new Date(sunday);
     saturday.setDate(sunday.getDate() + 6);
     const fmt = (d: Date) => d.toLocaleDateString([], { month: "short", day: "numeric" });
@@ -71,13 +59,7 @@ export function WeeklyTab({ onBarClick }: { onBarClick?: (date: Date) => void })
       <div className="h-px bg-border mx-4" />
       <WeeklyChart sessions={sessions} onBarClick={onBarClick} weekOffset={weekOffset} onWeekOffsetChange={setWeekOffset} />
       <div className="h-px bg-border mx-4" />
-      <HistoryList filterWeekStart={(() => {
-        const now = new Date();
-        const sunday = new Date(now);
-        sunday.setHours(0, 0, 0, 0);
-        sunday.setDate(now.getDate() - now.getDay() + weekOffset * 7);
-        return sunday;
-      })()} />
+      <HistoryList filterWeekStart={getWeekSunday(weekOffset)} />
     </>
   );
 }

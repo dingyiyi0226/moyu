@@ -1,50 +1,14 @@
 import { useMemo, useState } from "react";
 import { useAppStore, type BreakSession } from "@/store/appStore";
-import { getDateKey } from "@/lib/timeUtils";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts";
 import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
-import { formatDuration, navBtnClass, computeDayStats } from "@/lib/timeUtils";
-
-// ── Weekly aggregation ─────────────────────────────────────────────────
-
-const WEEK_DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-interface BarData {
-  key: string;
-  label: string;
-  breakSec: number;
-  workSec: number;
-  earnings: number;
-}
-
-function aggregateWeekly(
-  sessions: BreakSession[],
-  workIntervals: ReturnType<typeof useAppStore.getState>["workIntervals"],
-  weekOffset: number,
-  pauseIntervals: ReturnType<typeof useAppStore.getState>["pauseIntervals"],
-): BarData[] {
-  const today = new Date();
-  const dayOfWeek = today.getDay();
-  const sunday = new Date(today);
-  sunday.setHours(0, 0, 0, 0);
-  sunday.setDate(today.getDate() - dayOfWeek + weekOffset * 7);
-
-  return WEEK_DAY_LABELS.map((label, i) => {
-    const date = new Date(sunday);
-    date.setDate(sunday.getDate() + i);
-    const stats = computeDayStats(sessions, workIntervals, date, pauseIntervals);
-    return { key: getDateKey(date.getTime()), label, ...stats };
-  });
-}
+import { formatDuration, navBtnClass } from "@/lib/timeUtils";
+import { aggregateWeekStats, getWeekSunday } from "@/lib/statsUtils";
 
 function formatWeekLabel(weekOffset: number): string {
   if (weekOffset === 0) return "This Week";
-  const today = new Date();
-  const dayOfWeek = today.getDay();
-  const sunday = new Date(today);
-  sunday.setHours(0, 0, 0, 0);
-  sunday.setDate(today.getDate() - dayOfWeek + weekOffset * 7);
+  const sunday = getWeekSunday(weekOffset);
   const saturday = new Date(sunday);
   saturday.setDate(sunday.getDate() + 6);
   const fmt = (d: Date) =>
@@ -114,7 +78,7 @@ export function WeeklyChart({
   const [hiddenKeys, setHiddenKeys] = useState<Set<string>>(new Set());
 
   const bars = useMemo(
-    () => aggregateWeekly(sessions, allWorkIntervals, weekOffset, pauseIntervals),
+    () => aggregateWeekStats(sessions, allWorkIntervals, weekOffset, pauseIntervals),
     [sessions, allWorkIntervals, weekOffset, pauseIntervals],
   );
 
