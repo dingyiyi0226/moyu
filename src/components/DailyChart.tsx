@@ -240,7 +240,8 @@ export function DailyChart({
         <span className="absolute right-0 text-[9px] text-muted-foreground">
           {formatHour(viewEnd)}
         </span>
-        {isToday && nowH >= timeline.axisStart && nowH <= timeline.axisEnd && (
+        {isToday && nowH >= timeline.axisStart && nowH <= timeline.axisEnd &&
+          pct(nowH) > 10 && pct(nowH) < 90 && (
           <span
             className="absolute text-[9px] font-medium text-foreground/70 -translate-x-1/2"
             style={{ left: `${pct(nowH)}%` }}
