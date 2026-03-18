@@ -1,11 +1,10 @@
 import { useMemo } from "react";
 import { useAppStore } from "@/store/appStore";
-import { formatDuration } from "@/lib/timeUtils";
+import { formatDuration, formatWeekLabel } from "@/lib/timeUtils";
 import {
   computeAllTimeTotals,
   computeDayStats,
   getAllDateKeys,
-  getWeekKey,
   longestSingleBreak,
   longestWorkWithoutBreak,
   maxDayRecord,
@@ -59,7 +58,7 @@ export function SummaryTab() {
 
     const weekMap = new Map<string, { workSec: number; breakSec: number }>();
     for (const ds of dayStats) {
-      const wk = getWeekKey(ds.key);
+      const wk = formatWeekLabel(ds.key);
       const existing = weekMap.get(wk) ?? { workSec: 0, breakSec: 0 };
       existing.workSec += ds.workSec;
       existing.breakSec += ds.breakSec;

@@ -3,8 +3,8 @@ import { useAppStore, type BreakSession } from "@/store/appStore";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts";
 import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
-import { formatDuration, navBtnClass } from "@/lib/timeUtils";
-import { aggregateWeekStats, getWeekSunday } from "@/lib/statsUtils";
+import { formatDuration, getWeekSunday, navBtnClass } from "@/lib/timeUtils";
+import { aggregateWeekStats } from "@/lib/statsUtils";
 
 function formatWeekLabel(weekOffset: number): string {
   if (weekOffset === 0) return "This Week";

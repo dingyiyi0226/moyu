@@ -7,7 +7,7 @@ import {
   formatDuration,
   formatHour,
   navBtnClass,
-  getWorkIntervalsForDate,
+  getIntervalsForDate,
   getBreakSessionsForDate,
   toPercent,
 } from "@/lib/timeUtils";
@@ -131,7 +131,7 @@ export function DailyChart({
   const isToday = targetDate.toDateString() === now.toDateString();
 
   const timeline = useMemo(() => {
-    const dayIntervals = getWorkIntervalsForDate(allWorkIntervals, targetDate);
+    const dayIntervals = getIntervalsForDate(allWorkIntervals, targetDate);
     const daySessions = getBreakSessionsForDate(sessions, targetDate);
     const daySchedule = getDayScheduleForDate(targetDate, schedule, dailySchedules);
     const schedStart = daySchedule.startMinute / 60;

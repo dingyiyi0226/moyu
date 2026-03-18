@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { useAppStore } from "@/store/appStore";
 import { WeeklyChart } from "@/components/WeeklyChart";
-import { formatDuration } from "@/lib/timeUtils";
-import { aggregateWeekStats, getWeekSunday } from "@/lib/statsUtils";
+import { formatDuration, getWeekSunday } from "@/lib/timeUtils";
+import { aggregateWeekStats } from "@/lib/statsUtils";
 import { useCurrency } from "@/hooks/useCurrency";
 import { HistoryList } from "@/components/HistoryList";
 

@@ -1,5 +1,13 @@
 import { type BreakSession, type PauseInterval, type WorkInterval } from "@/store/appStore";
-import { formatDuration, getDateKey, getWorkIntervalsForDate, getPauseIntervalsForDate } from "@/lib/timeUtils";
+import {
+  formatDateKey,
+  formatDuration,
+  formatTime,
+  getDateKey,
+  getIntervalsForDate,
+  getWeekSunday,
+  getMsOfDay,
+} from "@/lib/timeUtils";
 
 export interface DayStats {
   breakSec: number;
@@ -29,7 +37,7 @@ export function computeDayStats(
   }
 
   let workSec = 0;
-  const dayIntervals = getWorkIntervalsForDate(workIntervals, date);
+  const dayIntervals = getIntervalsForDate(workIntervals, date);
   for (const iv of dayIntervals) {
     const end = iv.end ?? Date.now();
     workSec += Math.round((end - iv.start) / 1000);
@@ -37,7 +45,7 @@ export function computeDayStats(
 
   let pauseSec = 0;
   if (pauseIntervals) {
-    const dayPauses = getPauseIntervalsForDate(pauseIntervals, date);
+    const dayPauses = getIntervalsForDate(pauseIntervals, date);
     for (const iv of dayPauses) {
       const end = iv.end ?? Date.now();
       pauseSec += Math.round((end - iv.start) / 1000);
@@ -54,16 +62,6 @@ const WEEK_DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export interface WeekDayStats extends DayStats {
   key: string;
   label: string;
-}
-
-/** Get the Sunday (start) of a week by offset from the current week. */
-export function getWeekSunday(weekOffset: number): Date {
-  const now = new Date();
-  const dayOfWeek = now.getDay();
-  const sunday = new Date(now);
-  sunday.setHours(0, 0, 0, 0);
-  sunday.setDate(now.getDate() - dayOfWeek + weekOffset * 7);
-  return sunday;
 }
 
 /** Aggregate daily stats for a full week (Sun–Sat). */
@@ -107,29 +105,6 @@ export function getAllDateKeys(
   return Array.from(keys).sort();
 }
 
-/** Get a week label "Mon, Mar 2 – Sun, Mar 8" for a date string "YYYY-MM-DD". */
-export function getWeekKey(dateKey: string): string {
-  const d = new Date(dateKey + "T00:00:00");
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  const monday = new Date(d);
-  monday.setDate(diff);
-  const fmt = (dt: Date) =>
-    dt.toLocaleDateString([], { month: "short", day: "numeric" });
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  return `${fmt(monday)} – ${fmt(sunday)}`;
-}
-
-function formatDateKey(dateKey: string): string {
-  const d = new Date(dateKey + "T00:00:00");
-  return d.toLocaleDateString([], {
-    month: "short",
-    day: "numeric",
-    weekday: "short",
-  });
-}
-
 /** Compute all-time totals across every recorded day. */
 export function computeAllTimeTotals(
   sessions: BreakSession[],
@@ -153,15 +128,6 @@ export function computeAllTimeTotals(
 // ── Record helpers ────────────────────────────────────────────────────
 
 export type KeyedDayStats = { key: string; workSec: number; breakSec: number };
-
-function msOfDay(ts: number): number {
-  const d = new Date(ts);
-  return d.getHours() * 3600000 + d.getMinutes() * 60000 + d.getSeconds() * 1000;
-}
-
-function formatTimeOfDay(ts: number): string {
-  return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
 
 export function maxDayRecord(
   dayStats: KeyedDayStats[],
@@ -236,7 +202,7 @@ export function timeOfDayRecords(
   let earliestMs = Infinity, earliestTs = 0;
   let latestMs = -1, latestTs = 0;
   for (const ts of timestamps) {
-    const ms = msOfDay(ts);
+    const ms = getMsOfDay(ts);
     if (ms < earliestMs) { earliestMs = ms; earliestTs = ts; }
     if (ms > latestMs) { latestMs = ms; latestTs = ts; }
   }
@@ -244,14 +210,14 @@ export function timeOfDayRecords(
   if (earliestTs > 0) {
     records.push({
       label: earliestLabel,
-      value: formatTimeOfDay(earliestTs),
+      value: formatTime(earliestTs),
       detail: formatDateKey(getDateKey(earliestTs)),
     });
   }
   if (latestTs > 0) {
     records.push({
       label: latestLabel,
-      value: formatTimeOfDay(latestTs),
+      value: formatTime(latestTs),
       detail: formatDateKey(getDateKey(latestTs)),
     });
   }

@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { useAppStore, type BreakSession, type PauseInterval, type WorkInterval } from "@/store/appStore";
-import { formatTimestamp } from "@/lib/timeUtils";
+import { formatTimeSec } from "@/lib/timeUtils";
 import { useCurrency } from "@/hooks/useCurrency";
 import { LogIn, LogOut, Check, X, Presentation } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -297,7 +297,7 @@ export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: 
                         </>
                       ) : (
                         <>
-                          <span>{formatTimestamp(entry.time)}</span>
+                          <span>{formatTimeSec(entry.time)}</span>
                           <span className="text-muted-foreground">Clock In</span>
                         </>
                       )}
@@ -322,7 +322,7 @@ export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: 
                         </>
                       ) : (
                         <>
-                          <span>{formatTimestamp(entry.time)}</span>
+                          <span>{formatTimeSec(entry.time)}</span>
                           <span className="text-muted-foreground">Clock Out</span>
                         </>
                       )}
@@ -363,7 +363,7 @@ export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: 
                       ) : (
                         <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
                           <Presentation className="size-3" />
-                          {formatTimestamp(pause.start)}{duration && <>&nbsp;&middot; {duration}</>}
+                          {formatTimeSec(pause.start)}{duration && <>&nbsp;&middot; {duration}</>}
                           {isOngoing && (
                             <span className="text-[10px] px-1 py-px rounded bg-amber-100 dark:bg-amber-950/40 text-amber-600/70 leading-none">
                               ongoing
@@ -413,7 +413,7 @@ export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: 
                     ) : (
                       <>
                         <span className="text-muted-foreground flex items-center gap-1.5">
-                          {formatTimestamp(session.startTime)} &middot; {duration}
+                          {formatTimeSec(session.startTime)} &middot; {duration}
                           {label && (
                             <span className="text-[10px] px-1 py-px rounded bg-muted text-muted-foreground/70 leading-none">
                               {label}

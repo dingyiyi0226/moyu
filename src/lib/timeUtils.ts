@@ -1,4 +1,4 @@
-import { type BreakSession, type PauseInterval, type WorkInterval } from "@/store/appStore";
+import { type BreakSession } from "@/store/appStore";
 
 export function getDateKey(ts: number): string {
   const d = new Date(ts);
@@ -36,7 +36,7 @@ export function formatMinutes(minutes: number): string {
 }
 
 /** Format a Unix timestamp to "HH:MM:SS" (24h, locale-aware) */
-export function formatTimestamp(ts: number): string {
+export function formatTimeSec(ts: number): string {
   return new Date(ts).toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
@@ -45,14 +45,63 @@ export function formatTimestamp(ts: number): string {
   });
 }
 
+/** Format a Unix timestamp to "HH:MM" (24h, locale-aware) */
+export function formatTime(ts: number): string {
+  return new Date(ts).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+/** Format a "YYYY-MM-DD" date key to locale short display (e.g. "Mon, Mar 2") */
+export function formatDateKey(dateKey: string): string {
+  const d = new Date(dateKey + "T00:00:00");
+  return d.toLocaleDateString([], {
+    month: "short",
+    day: "numeric",
+    weekday: "short",
+  });
+}
+
+/** Extract milliseconds since midnight from a Unix timestamp. */
+export function getMsOfDay(ts: number): number {
+  const d = new Date(ts);
+  return d.getHours() * 3600000 + d.getMinutes() * 60000 + d.getSeconds() * 1000;
+}
+
+/** Get a week label "Mar 2 – Mar 8" for a date string "YYYY-MM-DD". */
+export function formatWeekLabel(dateKey: string): string {
+  const d = new Date(dateKey + "T00:00:00");
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(d);
+  monday.setDate(diff);
+  const fmt = (dt: Date) =>
+    dt.toLocaleDateString([], { month: "short", day: "numeric" });
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return `${fmt(monday)} – ${fmt(sunday)}`;
+}
+
+/** Get the Sunday (start) of a week by offset from the current week. */
+export function getWeekSunday(weekOffset: number): Date {
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const sunday = new Date(now);
+  sunday.setHours(0, 0, 0, 0);
+  sunday.setDate(now.getDate() - dayOfWeek + weekOffset * 7);
+  return sunday;
+}
+
 export const navBtnClass =
   "p-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-30 disabled:pointer-events-none";
 
-/** Filter work intervals that overlap with a given date (midnight to midnight). */
-export function getWorkIntervalsForDate(
-  allIntervals: WorkInterval[],
+/** Filter intervals (work or pause) that overlap with a given date (midnight to midnight). */
+export function getIntervalsForDate<T extends { start: number; end: number | null }>(
+  allIntervals: T[],
   date: Date,
-): WorkInterval[] {
+): T[] {
   const dayStart = new Date(date);
   dayStart.setHours(0, 0, 0, 0);
   const dayEnd = new Date(date);
@@ -74,23 +123,6 @@ export function getBreakSessionsForDate(
   return allSessions
     .filter((s) => getDateKey(s.startTime) === key)
     .sort((a, b) => a.startTime - b.startTime);
-}
-
-export function getPauseIntervalsForDate(
-  allIntervals: PauseInterval[],
-  date: Date,
-): PauseInterval[] {
-  const dayStart = new Date(date);
-  dayStart.setHours(0, 0, 0, 0);
-  const dayEnd = new Date(date);
-  dayEnd.setHours(23, 59, 59, 999);
-  const dsMs = dayStart.getTime();
-  const deMs = dayEnd.getTime();
-
-  return allIntervals.filter((iv) => {
-    const end = iv.end ?? Date.now();
-    return iv.start <= deMs && end >= dsMs;
-  });
 }
 
 /** Convert fractional hour to % position within the schedule bar */
