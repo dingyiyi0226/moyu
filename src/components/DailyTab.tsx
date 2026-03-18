@@ -1,13 +1,32 @@
+import { useState } from "react";
 import { useAppStore } from "@/store/appStore";
 import { BreakView } from "@/components/BreakView";
 import { WorkingView } from "@/components/WorkingView";
 import { DailyChart } from "@/components/DailyChart";
 import { HistoryList } from "@/components/HistoryList";
 
-export function DailyTab({ onOpenSettings }: { onOpenSettings: () => void }) {
+function today(): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+export function DailyTab({
+  onOpenSettings,
+  initialDate,
+}: {
+  onOpenSettings: () => void;
+  initialDate?: Date | null;
+}) {
   const isOnBreak = useAppStore((s) => s.isOnBreak);
   const salary = useAppStore((s) => s.salary);
   const sessions = useAppStore((s) => s.sessions);
+
+  const [selectedDate, setSelectedDate] = useState<Date>(
+    () => initialDate ?? today(),
+  );
+
+  const isToday = selectedDate.toDateString() === new Date().toDateString();
 
   return (
     <>
@@ -33,9 +52,23 @@ export function DailyTab({ onOpenSettings }: { onOpenSettings: () => void }) {
 
       <div className="h-px bg-border" />
 
-      <DailyChart sessions={sessions} todayOnly />
+      <DailyChart
+        sessions={sessions}
+        fixedDate={selectedDate}
+        onPrev={() => {
+          const d = new Date(selectedDate);
+          d.setDate(d.getDate() - 1);
+          setSelectedDate(d);
+        }}
+        onNext={() => {
+          if (isToday) return;
+          const d = new Date(selectedDate);
+          d.setDate(d.getDate() + 1);
+          setSelectedDate(d);
+        }}
+      />
       <div className="h-px bg-border mx-4" />
-      <HistoryList todayOnly />
+      <HistoryList filterDate={selectedDate} />
     </>
   );
 }
