@@ -1,3 +1,4 @@
+#![allow(clippy::unused_unit)]
 use tauri::Manager;
 use tauri_nspanel::{
     tauri_panel, CollectionBehavior, ManagerExt, PanelLevel, StyleMask, WebviewWindowExt,
