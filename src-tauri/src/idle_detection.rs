@@ -1,8 +1,8 @@
+use crate::{BreakStartPayload, ClockedIn};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
-use crate::{BreakStartPayload, ClockedIn};
 
 #[cfg(target_os = "macos")]
 #[link(name = "CoreGraphics", kind = "framework")]

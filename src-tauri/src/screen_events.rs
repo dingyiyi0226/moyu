@@ -1,12 +1,12 @@
 #[cfg(target_os = "macos")]
 mod macos {
+    use crate::{BreakStartPayload, ClockedIn};
     use core_foundation::base::TCFType;
     use core_foundation::string::CFString;
     use core_foundation_sys::notification_center::*;
     use std::os::raw::c_void;
     use std::time::{SystemTime, UNIX_EPOCH};
     use tauri::{AppHandle, Emitter};
-    use crate::{BreakStartPayload, ClockedIn};
 
     struct ObserverContext {
         app_handle: AppHandle,
@@ -35,7 +35,13 @@ mod macos {
 
         if name_str == "com.apple.screenIsLocked" {
             println!("[moyu] Screen locked — break started");
-            let _ = ctx.app_handle.emit("break:started", BreakStartPayload { ts: timestamp, reason: "screen-lock" });
+            let _ = ctx.app_handle.emit(
+                "break:started",
+                BreakStartPayload {
+                    ts: timestamp,
+                    reason: "screen-lock",
+                },
+            );
         } else if name_str == "com.apple.screenIsUnlocked" {
             println!("[moyu] Screen unlocked — break ended");
             let _ = ctx.app_handle.emit("break:ended", timestamp);
@@ -43,7 +49,10 @@ mod macos {
     }
 
     pub fn start_listening(app_handle: AppHandle, clocked_in: ClockedIn) {
-        let ctx = ObserverContext { app_handle, clocked_in };
+        let ctx = ObserverContext {
+            app_handle,
+            clocked_in,
+        };
         let ctx_ptr = Box::into_raw(Box::new(ctx)) as *const c_void;
 
         unsafe {

@@ -65,7 +65,13 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
     let show_i = MenuItem::with_id(app, "show", "Show", true, None::<&str>)?;
     let separator = PredefinedMenuItem::separator(app)?;
     let about_i = MenuItem::with_id(app, "about", "About Moyu", true, None::<&str>)?;
-    let update_i = MenuItem::with_id(app, "check_update", "Check for Updates...", true, None::<&str>)?;
+    let update_i = MenuItem::with_id(
+        app,
+        "check_update",
+        "Check for Updates...",
+        true,
+        None::<&str>,
+    )?;
     let quit_i = MenuItem::with_id(app, "quit", "Quit Moyu", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&show_i, &separator, &about_i, &update_i, &quit_i])?;
 
@@ -128,12 +134,9 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                                     let icon_size = rect.size.to_logical::<f64>(scale);
                                     let win_w = win_size.width as f64 / scale;
 
-                                    let x = icon_pos.x + (icon_size.width / 2.0)
-                                        - (win_w / 2.0);
+                                    let x = icon_pos.x + (icon_size.width / 2.0) - (win_w / 2.0);
                                     let y = icon_pos.y + icon_size.height;
-                                    let _ = window.set_position(
-                                        tauri::LogicalPosition::new(x, y),
-                                    );
+                                    let _ = window.set_position(tauri::LogicalPosition::new(x, y));
                                 }
                             }
                             panel.show_and_make_key();
@@ -153,12 +156,9 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                                 let icon_size = rect.size.to_logical::<f64>(scale);
                                 let win_w = win_size.width as f64 / scale;
 
-                                let x = icon_pos.x + (icon_size.width / 2.0)
-                                    - (win_w / 2.0);
+                                let x = icon_pos.x + (icon_size.width / 2.0) - (win_w / 2.0);
                                 let y = icon_pos.y + icon_size.height;
-                                let _ = window.set_position(
-                                    tauri::LogicalPosition::new(x, y),
-                                );
+                                let _ = window.set_position(tauri::LogicalPosition::new(x, y));
                             }
                             let _ = window.show();
                             let _ = window.set_focus();
@@ -202,10 +202,7 @@ pub fn start_break_timer(
 }
 
 #[tauri::command]
-pub fn stop_break_timer(
-    app: AppHandle,
-    state: tauri::State<Arc<Mutex<BreakTimerState>>>,
-) {
+pub fn stop_break_timer(app: AppHandle, state: tauri::State<Arc<Mutex<BreakTimerState>>>) {
     let mut lock = state.lock().unwrap();
     lock.config = None;
     lock.generation += 1;

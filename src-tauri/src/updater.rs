@@ -5,8 +5,8 @@ use tauri_plugin_updater::UpdaterExt;
 // rfd / tauri-plugin-dialog falls back to CFUserNotificationDisplayAlert (no custom icon) when
 // there is no parent window, and setting a parent would pull the NSPanel to the screen centre.
 pub(crate) mod alert {
-    use objc2::MainThreadMarker;
     use objc2::rc::autoreleasepool;
+    use objc2::MainThreadMarker;
     use objc2_app_kit::{
         NSAlert, NSAlertFirstButtonReturn, NSAlertStyle, NSApplication, NSModalResponse,
     };
@@ -74,7 +74,6 @@ pub(crate) mod alert {
     }
 }
 
-
 pub fn check_for_update(app: &AppHandle) {
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
@@ -90,10 +89,7 @@ pub fn check_for_update(app: &AppHandle) {
             Ok(Some(update)) => {
                 let confirmed = alert::show_confirm(
                     "Update Available",
-                    &format!(
-                        "New version {} is available. Install now?",
-                        update.version
-                    ),
+                    &format!("New version {} is available. Install now?", update.version),
                     "Install",
                     "Later",
                 );
@@ -112,19 +108,13 @@ pub fn check_for_update(app: &AppHandle) {
                             }
                         }
                         Err(e) => {
-                            alert::show_message(
-                                "Update Error",
-                                &format!("Update failed: {}", e),
-                            );
+                            alert::show_message("Update Error", &format!("Update failed: {}", e));
                         }
                     }
                 }
             }
             Ok(None) => {
-                alert::show_message(
-                    "No Updates",
-                    "There are currently no updates available.",
-                );
+                alert::show_message("No Updates", "There are currently no updates available.");
             }
             Err(e) => {
                 alert::show_message(
