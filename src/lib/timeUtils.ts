@@ -94,9 +94,6 @@ export function getWeekSunday(weekOffset: number): Date {
   return sunday;
 }
 
-export const navBtnClass =
-  "p-0.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-30 disabled:pointer-events-none";
-
 /** Filter intervals (work or pause) that overlap with a given date (midnight to midnight). */
 export function getIntervalsForDate<T extends { start: number; end: number | null }>(
   allIntervals: T[],

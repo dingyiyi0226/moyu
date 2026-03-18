@@ -6,11 +6,11 @@ import { Slider } from "@/components/ui/slider";
 import {
   formatDuration,
   formatHour,
-  navBtnClass,
   getIntervalsForDate,
   getBreakSessionsForDate,
   toPercent,
 } from "@/lib/timeUtils";
+import { navBtnClass } from "@/lib/utils";
 
 // ── Timeline construction ──────────────────────────────────────────────
 
