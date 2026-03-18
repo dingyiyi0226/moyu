@@ -141,6 +141,7 @@ function computeOverallStats(
   // Longest working interval without a break
   // For each work interval, find gaps between breaks to get continuous work stretches
   let longestWorkStretch = 0;
+  let longestWorkStretchTs = 0;
   for (const iv of workIntervals) {
     const ivEnd = iv.end ?? Date.now();
     // Find all breaks that overlap this work interval
@@ -148,25 +149,26 @@ function computeOverallStats(
       .filter((s) => s.startTime < ivEnd && s.endTime > iv.start)
       .sort((a, b) => a.startTime - b.startTime);
 
+    const updateMax = (dur: number, ts: number) => {
+      if (dur > longestWorkStretch) {
+        longestWorkStretch = dur;
+        longestWorkStretchTs = ts;
+      }
+    };
+
     if (overlapping.length === 0) {
-      longestWorkStretch = Math.max(longestWorkStretch, ivEnd - iv.start);
+      updateMax(ivEnd - iv.start, iv.start);
     } else {
-      // Gap before first break
-      longestWorkStretch = Math.max(
-        longestWorkStretch,
-        overlapping[0].startTime - iv.start,
-      );
-      // Gaps between consecutive breaks
+      updateMax(overlapping[0].startTime - iv.start, iv.start);
       for (let i = 1; i < overlapping.length; i++) {
-        longestWorkStretch = Math.max(
-          longestWorkStretch,
+        updateMax(
           overlapping[i].startTime - overlapping[i - 1].endTime,
+          overlapping[i - 1].endTime,
         );
       }
-      // Gap after last break
-      longestWorkStretch = Math.max(
-        longestWorkStretch,
+      updateMax(
         ivEnd - overlapping[overlapping.length - 1].endTime,
+        overlapping[overlapping.length - 1].endTime,
       );
     }
   }
@@ -174,19 +176,25 @@ function computeOverallStats(
     records.push({
       label: "Longest work without break",
       value: formatDuration(Math.round(longestWorkStretch / 1000)),
+      detail: formatDateKey(getDateKey(longestWorkStretchTs)),
     });
   }
 
   // Longest break interval
   let longestBreak = 0;
+  let longestBreakTs = 0;
   for (const s of sessions) {
     const dur = s.endTime - s.startTime;
-    if (dur > longestBreak) longestBreak = dur;
+    if (dur > longestBreak) {
+      longestBreak = dur;
+      longestBreakTs = s.startTime;
+    }
   }
   if (longestBreak > 0) {
     records.push({
       label: "Longest single break",
       value: formatDuration(Math.round(longestBreak / 1000)),
+      detail: formatDateKey(getDateKey(longestBreakTs)),
     });
   }
 
