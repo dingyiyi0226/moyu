@@ -4,7 +4,7 @@ import { WorkingView } from "@/components/WorkingView";
 import { DailyChart } from "@/components/DailyChart";
 import { HistoryList } from "@/components/HistoryList";
 
-export function TodayTab({ onOpenSettings }: { onOpenSettings: () => void }) {
+export function DailyTab({ onOpenSettings }: { onOpenSettings: () => void }) {
   const isOnBreak = useAppStore((s) => s.isOnBreak);
   const salary = useAppStore((s) => s.salary);
   const sessions = useAppStore((s) => s.sessions);

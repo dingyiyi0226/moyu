@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { useAppStore } from "@/store/appStore";
 import { useSystemEvents } from "@/hooks/useSystemEvents";
 import { SettingsPanel } from "@/components/SettingsPanel";
-import { TodayTab } from "@/components/TodayTab";
-import { SummaryTab } from "@/components/SummaryTab";
+import { DailyTab } from "@/components/DailyTab";
+import { WeeklyTab } from "@/components/WeeklyTab";
 import { Settings, ChevronLeft, Clock, BarChart3 } from "lucide-react";
 
-type Tab = "today" | "summary";
+type Tab = "daily" | "weekly";
 
 const tabBtnClass = (active: boolean) =>
   `flex items-center gap-1 px-3 py-1.5 text-[11px] font-medium transition-colors ${
@@ -18,7 +18,7 @@ const tabBtnClass = (active: boolean) =>
 function App() {
   const loadFromDisk = useAppStore((s) => s.loadFromDisk);
   const [showSettings, setShowSettings] = useState(false);
-  const [tab, setTab] = useState<Tab>("today");
+  const [tab, setTab] = useState<Tab>("daily");
   useSystemEvents();
 
   useEffect(() => {
@@ -56,22 +56,22 @@ function App() {
             </button>
           </div>
 
-          {tab === "today" ? (
-            <TodayTab onOpenSettings={() => setShowSettings(true)} />
+          {tab === "daily" ? (
+            <DailyTab onOpenSettings={() => setShowSettings(true)} />
           ) : (
-            <SummaryTab />
+            <WeeklyTab />
           )}
 
           {/* Tab bar */}
           <div className="h-px bg-border" />
           <div className="flex items-center justify-center gap-4 py-1">
-            <button className={tabBtnClass(tab === "today")} onClick={() => setTab("today")}>
+            <button className={tabBtnClass(tab === "daily")} onClick={() => setTab("daily")}>
               <Clock className="size-3" />
-              Today
+              Daily
             </button>
-            <button className={tabBtnClass(tab === "summary")} onClick={() => setTab("summary")}>
+            <button className={tabBtnClass(tab === "weekly")} onClick={() => setTab("weekly")}>
               <BarChart3 className="size-3" />
-              Summary
+              Weekly
             </button>
           </div>
         </>

@@ -62,7 +62,7 @@ function WeeklySummary({ weekOffset }: { weekOffset: number }) {
   );
 }
 
-export function SummaryTab() {
+export function WeeklyTab() {
   const sessions = useAppStore((s) => s.sessions);
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [weekOffset, setWeekOffset] = useState(0);
