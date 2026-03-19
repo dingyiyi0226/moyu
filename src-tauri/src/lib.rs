@@ -1,3 +1,4 @@
+mod icloud;
 mod idle_detection;
 mod screen_events;
 mod tray;
@@ -35,6 +36,9 @@ pub fn run() {
             tray::stop_break_timer,
             idle_detection::set_idle_timeout,
             set_clocked_in,
+            icloud::save_to_icloud,
+            icloud::load_from_icloud,
+            icloud::get_icloud_backup_time,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]

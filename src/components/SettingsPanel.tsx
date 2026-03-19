@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
-import { Pencil, Check } from "lucide-react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { Pencil, Check, CloudUpload, CloudDownload, Loader2 } from "lucide-react";
+import { invoke } from "@tauri-apps/api/core";
 import { useCurrency } from "@/hooks/useCurrency";
 import { perSecondRate, weeklyWorkHours, DEFAULT_SCHEDULE } from "@/lib/scheduleUtils";
 import {
@@ -20,6 +21,17 @@ const periods: { value: SalaryPeriod; label: string }[] = [
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 
+function timeAgo(ms: number): string {
+  const sec = Math.floor((Date.now() - ms) / 1000);
+  if (sec < 60) return "just now";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min} minute${min > 1 ? "s" : ""} ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} hour${hr > 1 ? "s" : ""} ago`;
+  const days = Math.floor(hr / 24);
+  return `${days} day${days > 1 ? "s" : ""} ago`;
+}
+
 const selectClass =
   "h-7 rounded-md border border-input bg-transparent px-1 text-xs outline-none transition-colors focus:border-foreground/30 focus:ring-1 focus:ring-foreground/10 appearance-none text-center";
 
@@ -32,6 +44,20 @@ export function SettingsPanel() {
   const storeIdleTimeoutSec = useAppStore((s) => s.idleTimeoutSec);
   const setIdleTimeoutSec = useAppStore((s) => s.setIdleTimeoutSec);
   const [idleInputValue, setIdleInputValue] = useState(storeIdleTimeoutSec);
+
+  const saveToDisk = useAppStore((s) => s.saveToDisk);
+  const loadFromDisk = useAppStore((s) => s.loadFromDisk);
+  const [cloudStatus, setCloudStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [cloudLoading, setCloudLoading] = useState<"save" | "load" | null>(null);
+  const [confirmRestore, setConfirmRestore] = useState(false);
+  const [lastBackupTime, setLastBackupTime] = useState<number | null>(null);
+
+  const fetchBackupTime = useCallback(async () => {
+    const time = await invoke<number | null>("get_icloud_backup_time");
+    setLastBackupTime(time);
+  }, []);
+
+  useEffect(() => { fetchBackupTime(); }, [fetchBackupTime]);
 
   const [editing, setEditing] = useState(false);
   const [days, setDays] = useState<Record<number, DaySchedule>>(() => ({
@@ -93,6 +119,41 @@ export function SettingsPanel() {
   const saveSchedule = () => {
     setSchedule({ days });
     setEditing(false);
+  };
+
+  const handleSaveToCloud = async () => {
+    setCloudLoading("save");
+    setCloudStatus(null);
+    try {
+      await saveToDisk();
+      await invoke("save_to_icloud");
+      await fetchBackupTime();
+      setCloudStatus(null);
+    } catch (e) {
+      setCloudStatus({ type: "error", message: String(e) });
+    } finally {
+      setCloudLoading(null);
+    }
+  };
+
+  const handleLoadFromCloud = async () => {
+    if (!confirmRestore) {
+      setConfirmRestore(true);
+      setTimeout(() => setConfirmRestore(false), 3000);
+      return;
+    }
+    setConfirmRestore(false);
+    setCloudLoading("load");
+    setCloudStatus(null);
+    try {
+      await invoke("load_from_icloud");
+      await loadFromDisk();
+      setCloudStatus(null);
+    } catch (e) {
+      setCloudStatus({ type: "error", message: String(e) });
+    } finally {
+      setCloudLoading(null);
+    }
   };
 
   return (
@@ -324,6 +385,55 @@ export function SettingsPanel() {
               : "must be between 10 and 3600"}
           </span>
         </div>
+      </div>
+
+      <div className="h-px bg-border" />
+
+      {/* ── iCloud Sync ──────────────────────────────────── */}
+      <div>
+        <label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+          iCloud Backup
+        </label>
+        {lastBackupTime && (
+          <p className="text-[10px] text-muted-foreground mt-0.5">
+            last sync: {timeAgo(lastBackupTime)}
+          </p>
+        )}
+        <div className="flex gap-2 mt-2 px-3">
+          <button
+            onClick={handleSaveToCloud}
+            disabled={cloudLoading !== null}
+            className="flex-1 flex items-center justify-center gap-1.5 h-8 rounded-sm border border-input text-xs font-medium transition-colors hover:bg-muted disabled:opacity-50 disabled:pointer-events-none"
+          >
+            {cloudLoading === "save" ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <CloudUpload className="size-3.5" />
+            )}
+            Backup
+          </button>
+          <button
+            onClick={handleLoadFromCloud}
+            disabled={cloudLoading !== null}
+            className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-sm border text-xs font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none ${
+              confirmRestore
+                ? "border-red-500/50 text-red-400 hover:bg-red-500/10"
+                : "border-input hover:bg-muted"
+            }`}
+          >
+            {cloudLoading === "load" ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <CloudDownload className="size-3.5" />
+            )}
+            {confirmRestore ? "Overwrite?" : "Restore"}
+          </button>
+        </div>
+        {cloudStatus && (
+          <p className="text-[11px] mt-1.5 text-center text-red-400">
+            {cloudStatus.message}
+          </p>
+        )}
       </div>
     </div>
   );
