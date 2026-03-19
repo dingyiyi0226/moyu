@@ -6,16 +6,10 @@ import { SettingsPanel } from "@/components/SettingsPanel";
 import { DailyTab } from "@/components/DailyTab";
 import { WeeklyTab } from "@/components/WeeklyTab";
 import { SummaryTab } from "@/components/SummaryTab";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Settings, ChevronLeft, Clock, BarChart3, Trophy } from "lucide-react";
 
 type Tab = "daily" | "weekly" | "summary";
-
-const tabBtnClass = (active: boolean) =>
-  `flex items-center gap-1 px-3 py-1.5 text-[11px] font-medium transition-colors ${
-    active
-      ? "text-foreground border-b-2 border-foreground"
-      : "text-muted-foreground hover:text-foreground"
-  }`;
 
 function App() {
   const loadFromDisk = useAppStore((s) => s.loadFromDisk);
@@ -81,20 +75,22 @@ function App() {
 
           {/* Tab bar */}
           <div className="h-px bg-border" />
-          <div className="flex items-center justify-center gap-4 py-1">
-            <button className={tabBtnClass(tab === "daily")} onClick={() => { setDailyInitialDate(null); setTab("daily"); }}>
-              <Clock className="size-3" />
-              Daily
-            </button>
-            <button className={tabBtnClass(tab === "weekly")} onClick={() => setTab("weekly")}>
-              <BarChart3 className="size-3" />
-              Weekly
-            </button>
-            <button className={tabBtnClass(tab === "summary")} onClick={() => setTab("summary")}>
-              <Trophy className="size-3" />
-              Summary
-            </button>
-          </div>
+          <Tabs value={tab} onValueChange={(v) => { if (v === "daily") setDailyInitialDate(null); setTab(v as Tab); }}>
+            <TabsList variant="line" className="w-full px-4 py-3">
+              <TabsTrigger value="daily" className="text-[11px]">
+                <Clock className="size-3" />
+                Daily
+              </TabsTrigger>
+              <TabsTrigger value="weekly" className="text-[11px]">
+                <BarChart3 className="size-3" />
+                Weekly
+              </TabsTrigger>
+              <TabsTrigger value="summary" className="text-[11px]">
+                <Trophy className="size-3" />
+                Summary
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </>
       )}
     </div>
