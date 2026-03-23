@@ -73,6 +73,26 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
         None::<&str>,
     )?;
     let quit_i = MenuItem::with_id(app, "quit", "Quit Moyu", true, None::<&str>)?;
+
+    #[cfg(debug_assertions)]
+    let devtools_i = MenuItem::with_id(app, "devtools", "Open DevTools", true, None::<&str>)?;
+    #[cfg(debug_assertions)]
+    let devtools_sep = PredefinedMenuItem::separator(app)?;
+
+    #[cfg(debug_assertions)]
+    let menu = Menu::with_items(
+        app,
+        &[
+            &show_i,
+            &separator,
+            &devtools_i,
+            &devtools_sep,
+            &about_i,
+            &update_i,
+            &quit_i,
+        ],
+    )?;
+    #[cfg(not(debug_assertions))]
     let menu = Menu::with_items(app, &[&show_i, &separator, &about_i, &update_i, &quit_i])?;
 
     let _tray = TrayIconBuilder::with_id("moyu-tray")
@@ -92,6 +112,12 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
             }
             "check_update" => {
                 updater::check_for_update(app);
+            }
+            #[cfg(debug_assertions)]
+            "devtools" => {
+                if let Some(window) = app.get_webview_window("main") {
+                    window.open_devtools();
+                }
             }
             "show" => {
                 #[cfg(target_os = "macos")]
