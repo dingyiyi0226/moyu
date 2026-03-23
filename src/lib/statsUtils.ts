@@ -152,36 +152,48 @@ export function maxWeekRecord(
   return { label, value: formatDuration(best.value), detail: best.key };
 }
 
+export interface WorkSession {
+  start: number; // Unix timestamp ms
+  end: number;   // Unix timestamp ms
+}
+
+/** Split work intervals into continuous work sessions by removing break gaps. */
+export function getWorkSessions(
+  workIntervals: WorkInterval[],
+  sessions: BreakSession[],
+): WorkSession[] {
+  const intervals = [...workIntervals].sort((a, b) => a.start - b.start);
+  const breaks = [...sessions].sort((a, b) => a.startTime - b.startTime);
+  const result: WorkSession[] = [];
+  let bi = 0;
+
+  for (const iv of intervals) {
+    const ivEnd = iv.end ?? Date.now();
+    let cursor = iv.start;
+
+    while (bi < breaks.length && breaks[bi].startTime < ivEnd) {
+      if (breaks[bi].endTime <= iv.start) { bi++; continue; }
+      result.push({ start: cursor, end: breaks[bi].startTime });
+      cursor = breaks[bi].endTime;
+      bi++;
+    }
+    result.push({ start: cursor, end: ivEnd });
+  }
+  return result;
+}
+
 export function longestWorkWithoutBreak(
   workIntervals: WorkInterval[],
   sessions: BreakSession[],
 ): StatRecord | null {
+  const workSessions = getWorkSessions(workIntervals, sessions);
   let longestMs = 0;
   let longestTs = 0;
-  for (const iv of workIntervals) {
-    const ivEnd = iv.end ?? Date.now();
-    const overlapping = sessions
-      .filter((s) => s.startTime < ivEnd && s.endTime > iv.start)
-      .sort((a, b) => a.startTime - b.startTime);
-
-    const check = (dur: number, ts: number) => {
-      if (dur > longestMs) { longestMs = dur; longestTs = ts; }
-    };
-
-    if (overlapping.length === 0) {
-      check(ivEnd - iv.start, iv.start);
-    } else {
-      check(overlapping[0].startTime - iv.start, iv.start);
-      for (let i = 1; i < overlapping.length; i++) {
-        check(
-          overlapping[i].startTime - overlapping[i - 1].endTime,
-          overlapping[i - 1].endTime,
-        );
-      }
-      check(
-        ivEnd - overlapping[overlapping.length - 1].endTime,
-        overlapping[overlapping.length - 1].endTime,
-      );
+  for (const ws of workSessions) {
+    const dur = ws.end - ws.start;
+    if (dur > longestMs) {
+      longestMs = dur;
+      longestTs = ws.start;
     }
   }
   if (longestMs <= 0) return null;
