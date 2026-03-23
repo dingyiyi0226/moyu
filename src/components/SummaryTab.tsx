@@ -27,7 +27,7 @@ function AllTimeSummary() {
   );
 
   return (
-    <div className="px-4 py-3 text-center">
+    <div className="px-4 py-3 text-center shrink-0">
       <div className="text-[10px] text-muted-foreground">
         All-time earnings
       </div>
@@ -83,38 +83,38 @@ export function SummaryTab() {
 
   if (stats.length === 0) {
     return (
-      <div className="px-4 py-12 text-center text-[11px] text-muted-foreground">
+      <div className="flex-1 min-h-0 px-4 py-12 text-center text-[11px] text-muted-foreground">
         No data yet. Clock in to start tracking.
       </div>
     );
   }
 
   return (
-    <div className="overflow-y-auto max-h-[calc(100vh-100px)]">
+    <div className="flex-1 min-h-0 flex flex-col">
       <AllTimeSummary />
-      <div className="h-px bg-border mx-4" />
-      <div className="px-4 py-3 space-y-2">
-      <div className="text-[10px] text-muted-foreground text-center mb-3">
-        All-time Records
-      </div>
-      {stats.map((s) => (
-        <div
-          key={s.label}
-          className="flex items-baseline justify-between gap-2 py-1.5 border-b border-border last:border-0"
-        >
-          <span className="text-[11px] text-muted-foreground shrink-0">
-            {s.label}
-          </span>
-          <div className="text-right">
-            <span className="text-[13px] font-semibold">{s.value}</span>
-            {s.detail && (
-              <span className="text-[10px] text-muted-foreground ml-1.5">
-                {s.detail}
-              </span>
-            )}
-          </div>
+      <div className="h-px bg-border mx-4 shrink-0" />
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-2">
+        <div className="text-[10px] text-muted-foreground text-center mb-3">
+          All-time Records
         </div>
-      ))}
+        {stats.map((s) => (
+          <div
+            key={s.label}
+            className="flex items-baseline justify-between gap-2 py-1.5 border-b border-border last:border-0"
+          >
+            <span className="text-[11px] text-muted-foreground shrink-0">
+              {s.label}
+            </span>
+            <div className="text-right">
+              <span className="text-[13px] font-semibold">{s.value}</span>
+              {s.detail && (
+                <span className="text-[10px] text-muted-foreground ml-1.5">
+                  {s.detail}
+                </span>
+              )}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

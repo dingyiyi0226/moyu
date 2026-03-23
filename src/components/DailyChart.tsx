@@ -238,7 +238,7 @@ export function DailyChart({
   }, [showLineChart, timeline]);
 
   return (
-    <div className="px-4 py-3">
+    <div className="px-4 py-3 shrink-0">
       {todayOnly ? (
         <div className="flex items-center justify-center mb-3">
           <span className="text-[11px] font-medium text-muted-foreground">Today</span>

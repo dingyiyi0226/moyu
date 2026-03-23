@@ -210,7 +210,7 @@ export function WeeklyChart({
   }, [showLineChart, weeklyLineData]);
 
   return (
-    <div className="px-4 py-3">
+    <div className="px-4 py-3 shrink-0">
       <div className="flex items-center justify-between mb-2">
         <button
           onClick={() => setWeekOffset(weekOffset - 1)}

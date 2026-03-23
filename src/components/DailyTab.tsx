@@ -29,8 +29,8 @@ export function DailyTab({
   const isToday = selectedDate.toDateString() === new Date().toDateString();
 
   return (
-    <>
-      <div className="px-4 pb-4">
+    <div className="flex-1 min-h-0 flex flex-col">
+      <div className="px-4 pb-4 shrink-0">
         {salary.amount === 0 ? (
           <div className="text-center py-10">
             <p className="text-sm text-muted-foreground mb-3">
@@ -50,7 +50,7 @@ export function DailyTab({
         )}
       </div>
 
-      <div className="h-px bg-border" />
+      <div className="h-px bg-border shrink-0" />
 
       <DailyChart
         sessions={sessions}
@@ -67,8 +67,8 @@ export function DailyTab({
           setSelectedDate(d);
         }}
       />
-      <div className="h-px bg-border mx-4" />
+      <div className="h-px bg-border mx-4 shrink-0" />
       <HistoryList filterDate={selectedDate} />
-    </>
+    </div>
   );
 }

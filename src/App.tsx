@@ -25,7 +25,7 @@ function App() {
   }, [loadFromDisk]);
 
   return (
-    <div className="w-[320px] min-h-0 select-none bg-background rounded-xl overflow-hidden">
+    <div className="w-[320px] select-none bg-background rounded-xl overflow-hidden flex flex-col h-screen">
       {showSettings ? (
         <div className="pt-4 flex flex-col h-screen">
           <div className="flex items-center gap-2 mb-5 shrink-0 px-4">
@@ -43,7 +43,7 @@ function App() {
         </div>
       ) : (
         <>
-          <div className="flex items-center justify-between px-4 pt-4 pb-2">
+          <div className="flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
             <h1 className="text-[13px] font-semibold tracking-tight text-foreground/80">
               Moyu
             </h1>
@@ -74,23 +74,25 @@ function App() {
           )}
 
           {/* Tab bar */}
-          <div className="h-px bg-border" />
-          <Tabs value={tab} onValueChange={(v) => { if (v === "daily") setDailyInitialDate(null); setTab(v as Tab); }}>
-            <TabsList variant="line" className="w-full px-4 py-3">
-              <TabsTrigger value="daily" className="text-[11px]">
-                <Clock className="size-3" />
-                Daily
-              </TabsTrigger>
-              <TabsTrigger value="weekly" className="text-[11px]">
-                <BarChart3 className="size-3" />
-                Weekly
-              </TabsTrigger>
-              <TabsTrigger value="summary" className="text-[11px]">
-                <Trophy className="size-3" />
-                Summary
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="shrink-0">
+            <div className="h-px bg-border" />
+            <Tabs value={tab} onValueChange={(v) => { if (v === "daily") setDailyInitialDate(null); setTab(v as Tab); }}>
+              <TabsList variant="line" className="w-full px-4 py-3">
+                <TabsTrigger value="daily" className="text-[11px]">
+                  <Clock className="size-3" />
+                  Daily
+                </TabsTrigger>
+                <TabsTrigger value="weekly" className="text-[11px]">
+                  <BarChart3 className="size-3" />
+                  Weekly
+                </TabsTrigger>
+                <TabsTrigger value="summary" className="text-[11px]">
+                  <Trophy className="size-3" />
+                  Summary
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
         </>
       )}
     </div>

@@ -35,7 +35,7 @@ function WeeklySummary({ weekOffset }: { weekOffset: number }) {
   }, [weekOffset]);
 
   return (
-    <div className="px-4 py-3 text-center">
+    <div className="px-4 py-3 text-center shrink-0">
       <div className="text-[10px] text-muted-foreground">
         Your earnings {weekOffset === 0 ? "this week" : `in ${weekLabel}`}
       </div>
@@ -54,12 +54,12 @@ export function WeeklyTab({ onBarClick }: { onBarClick?: (date: Date) => void })
   const [weekOffset, setWeekOffset] = useState(0);
 
   return (
-    <>
+    <div className="flex-1 min-h-0 flex flex-col">
       <WeeklySummary weekOffset={weekOffset} />
-      <div className="h-px bg-border mx-4" />
+      <div className="h-px bg-border mx-4 shrink-0" />
       <WeeklyChart sessions={sessions} onBarClick={onBarClick} weekOffset={weekOffset} onWeekOffsetChange={setWeekOffset} />
-      <div className="h-px bg-border mx-4" />
+      <div className="h-px bg-border mx-4 shrink-0" />
       <HistoryList filterWeekStart={getWeekSunday(weekOffset)} />
-    </>
+    </div>
   );
 }

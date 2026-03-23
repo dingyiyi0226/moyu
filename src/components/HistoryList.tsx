@@ -256,15 +256,17 @@ export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: 
 
   if (allSessions.length === 0 && allWorkIntervals.length === 0) {
     return (
-      <p className="text-center text-[11px] text-muted-foreground py-5">
-        Lock your screen to start tracking breaks.
-      </p>
+      <div className="flex-1 min-h-0">
+        <p className="text-center text-[11px] text-muted-foreground py-5">
+          Lock your screen to start tracking breaks.
+        </p>
+      </div>
     );
   }
 
   return (
     <>
-      <div className="max-h-[240px] overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {groupedByDay.map((group, groupIdx) => (
           <div key={group.date}>
             {groupIdx > 0 && <div className="h-px bg-border mx-4" />}
