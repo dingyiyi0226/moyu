@@ -48,10 +48,10 @@ export function DayDurationChart({
   leastBreakSec,
 }: DayDurationChartProps) {
   const markers: Marker[] = [
-    { label: "Most work", sec: mostWorkSec, color: WORK_COLOR, kind: "most" as const },
-    { label: "Least work", sec: leastWorkSec, color: WORK_COLOR_LIGHT, kind: "least" as const },
-    { label: "Most break", sec: mostBreakSec, color: BREAK_COLOR, kind: "most" as const },
     { label: "Least break", sec: leastBreakSec, color: BREAK_COLOR_LIGHT, kind: "least" as const },
+    { label: "Most break", sec: mostBreakSec, color: BREAK_COLOR, kind: "most" as const },
+    { label: "Least work", sec: leastWorkSec, color: WORK_COLOR_LIGHT, kind: "least" as const },
+    { label: "Most work", sec: mostWorkSec, color: WORK_COLOR, kind: "most" as const },
   ]
     .filter((m) => m.sec > 0)
     .sort((a, b) => a.sec - b.sec)
@@ -90,9 +90,8 @@ export function DayDurationChart({
 
       <DurationLabels markers={leastMarkers} className="mt-0.5" />
 
-      {/* Legend – 2×2 grid aligned by dot */}
-      <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 w-fit mx-auto mt-1.5">
-        {[...mostMarkers, ...leastMarkers].map((m) => (
+      <div className="flex gap-x-3 justify-center mt-1.5">
+        {markers.map((m) => (
           <span key={m.label} className="text-[9px] text-muted-foreground flex items-center gap-1">
             <span
               className="inline-block w-2 h-2 rounded-sm shrink-0"
