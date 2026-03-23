@@ -1,6 +1,6 @@
 import { ChartLine } from "lucide-react";
 import { formatHour } from "@/lib/timeUtils";
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts";
+import { Area, AreaChart, ReferenceLine, XAxis, YAxis, Tooltip } from "recharts";
 import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
 
 // ── Tooltip ──────────────────────────────────────────────────────────
@@ -55,7 +55,9 @@ export function ActivityLineChart({
               <stop offset="95%" stopColor="var(--color-percent)" stopOpacity={0.05} />
             </linearGradient>
           </defs>
-          <CartesianGrid vertical={false} strokeDasharray="3 3" />
+          {[25, 50, 75, 100].map((v) => (
+            <ReferenceLine key={v} y={v} stroke="currentColor" strokeOpacity={0.15} strokeDasharray="3 3" />
+          ))}
           <XAxis
             dataKey="hour"
             tickLine={false}
