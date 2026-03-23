@@ -21,7 +21,7 @@ interface TimeRange {
   endH: number;
 }
 
-interface DayTimeline {
+export interface DayTimeline {
   axisStart: number; // schedule start hour
   axisEnd: number;   // schedule end hour
   workBands: TimeRange[];
@@ -105,7 +105,7 @@ function formatDateLabel(dayOffset: number): string {
 
 // ── Moving average chart ─────────────────────────────────────────────
 
-function computeMovingAverage(
+export function computeMovingAverage(
   timeline: DayTimeline,
   windowHours: number,
   stepMinutes: number,
