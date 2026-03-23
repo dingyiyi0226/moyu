@@ -45,10 +45,10 @@ export function DailyTab({
               Set up salary
             </button>
           </div>
-        ) : isOnBreak ? (
+        ) : isToday && isOnBreak ? (
           <BreakView />
         ) : (
-          <WorkingView />
+          <WorkingView date={selectedDate} />
         )}
       </div>
 
