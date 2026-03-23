@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useAppStore, type BreakSession, type WorkInterval } from "@/store/appStore";
 import { getDayScheduleForDate } from "@/lib/scheduleUtils";
-import { ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChartLine, Search } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import {
   formatDuration,
@@ -10,6 +10,8 @@ import {
   getBreakSessionsForDate,
   toPercent,
 } from "@/lib/timeUtils";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts";
+import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
 import { navBtnClass } from "@/lib/utils";
 
 // ── Timeline construction ──────────────────────────────────────────────
@@ -101,6 +103,74 @@ function formatDateLabel(dayOffset: number): string {
   return d.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
+// ── Moving average chart ─────────────────────────────────────────────
+
+function computeMovingAverage(
+  timeline: DayTimeline,
+  windowHours: number,
+  stepMinutes: number,
+  maxHour?: number,
+): { hour: number; label: string; percent: number }[] {
+  const halfWindow = windowHours / 2;
+  const points: { hour: number; label: string; percent: number }[] = [];
+  const endH = maxHour != null ? Math.min(maxHour, timeline.axisEnd) : timeline.axisEnd;
+
+  for (let h = timeline.axisStart; h <= endH + 0.001; h += stepMinutes / 60) {
+    // If this point is outside all work bands, force to 0
+    const isClockedIn = timeline.workBands.some(
+      (band) => h >= band.startH && h <= band.endH,
+    );
+
+    let percent = 0;
+    if (isClockedIn) {
+      const wStart = h - halfWindow;
+      const wEnd = h + halfWindow;
+
+      let workTime = 0;
+      for (const band of timeline.workBands) {
+        const s = Math.max(band.startH, wStart);
+        const e = Math.min(band.endH, wEnd);
+        if (s < e) workTime += e - s;
+      }
+
+      let breakTime = 0;
+      for (const band of timeline.breakBands) {
+        const s = Math.max(band.startH, wStart);
+        const e = Math.min(band.endH, wEnd);
+        if (s < e) breakTime += e - s;
+      }
+
+      const netWork = Math.max(0, workTime - breakTime);
+      percent = workTime > 0 ? Math.round((netWork / workTime) * 1000) / 10 : 0;
+    }
+
+    points.push({ hour: h, label: formatHour(h), percent });
+  }
+
+  return points;
+}
+
+function DailyLineTooltip({ active, payload }: {
+  active?: boolean;
+  payload?: Array<{ payload: { label: string; percent: number } }>;
+}) {
+  if (!active || !payload?.length) return null;
+  const { label, percent } = payload[0].payload;
+  return (
+    <div className="rounded-lg bg-foreground text-background text-[10px] px-2 py-1.5 shadow-md">
+      <div>{label}</div>
+      <div className="font-medium">{percent}%</div>
+    </div>
+  );
+}
+
+const dailyLineChartConfig = {
+  percent: {
+    label: "Working %",
+    color: "oklch(0.707 0.165 254.624)",
+  },
+} satisfies ChartConfig;
+
 // ── Component ──────────────────────────────────────────────────────────
 
 export function DailyChart({
@@ -122,6 +192,7 @@ export function DailyChart({
   const [dayOffset, setDayOffset] = useState(0);
   const [zoomMode, setZoomMode] = useState(false);
   const [zoomRange, setZoomRange] = useState<[number, number] | null>(null);
+  const [showLineChart, setShowLineChart] = useState(false);
 
   const effectiveOffset = todayOnly ? 0 : dayOffset;
   const targetDate = fixedDate ?? getOffsetDate(effectiveOffset);
@@ -148,6 +219,23 @@ export function DailyChart({
   const viewStart = zoomRange ? zoomRange[0] : timeline.axisStart;
   const viewEnd = zoomRange ? zoomRange[1] : timeline.axisEnd;
   const pct = (h: number) => toPercent(h, viewStart, viewEnd);
+
+  const lineChartData = useMemo(() => {
+    if (!showLineChart) return [];
+    return computeMovingAverage(timeline, 0.5, 5, isToday ? nowH : undefined);
+  }, [showLineChart, timeline, isToday, nowH]);
+
+  const xTicks = useMemo(() => {
+    if (!showLineChart) return [];
+    const ticks: number[] = [];
+    const range = timeline.axisEnd - timeline.axisStart;
+    const step = range > 6 ? 2 : 1;
+    const start = Math.ceil(timeline.axisStart / step) * step;
+    for (let h = start; h <= timeline.axisEnd; h += step) {
+      ticks.push(h);
+    }
+    return ticks;
+  }, [showLineChart, timeline]);
 
   return (
     <div className="px-4 py-3">
@@ -188,133 +276,198 @@ export function DailyChart({
         </div>
       )}
 
-      {/* Timeline bar */}
-      <div className="relative h-5 rounded-full bg-muted/80 overflow-hidden">
-        {/* Layer 1: Working region bands */}
-        {timeline.workBands.map((band, i) => (
-          <div
-            key={i}
-            className="absolute inset-y-0 bg-blue-400/50 dark:bg-blue-500/30"
-            style={{
-              left: `${pct(band.startH)}%`,
-              width: `${pct(band.endH) - pct(band.startH)}%`,
-            }}
-          />
-        ))}
-
-        {/* Layer 2: Break segments (clipped to work bands) */}
-        {timeline.breakBands.map((band) => {
-          const left = pct(band.startH);
-          const width = pct(band.endH) - left;
-          if (width <= 0) return null;
-
-          return (
-            <div
-              key={band.id}
-              className="group absolute inset-y-0 bg-emerald-400/80 dark:bg-emerald-500/60"
-              style={{ left: `${left}%`, width: `${width}%` }}
-            >
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10">
-                <div className="bg-foreground text-background text-[10px] rounded px-1.5 py-0.5 whitespace-nowrap">
-                  {formatHour(band.startH)}–{formatHour(band.endH)}
-                </div>
-              </div>
+      {showLineChart ? (
+        <>
+          <ChartContainer config={dailyLineChartConfig} className="h-[100px] w-full">
+            <AreaChart data={lineChartData}>
+              <defs>
+                <linearGradient id="dailyWorkGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--color-percent)" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="var(--color-percent)" stopOpacity={0.05} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid vertical={false} strokeDasharray="3 3" />
+              <XAxis
+                dataKey="hour"
+                tickLine={false}
+                axisLine={false}
+                tick={{ fontSize: 9 }}
+                tickFormatter={(h: number) => formatHour(h)}
+                ticks={xTicks}
+                domain={[timeline.axisStart, timeline.axisEnd]}
+                type="number"
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tick={{ fontSize: 8 }}
+                tickFormatter={(v: number) => `${v}%`}
+                width={32}
+                domain={[0, 100]}
+                ticks={[0, 25, 50, 75, 100]}
+              />
+              <Tooltip content={<DailyLineTooltip />} />
+              <Area
+                dataKey="percent"
+                type="monotone"
+                stroke="var(--color-percent)"
+                fill="url(#dailyWorkGradient)"
+                strokeWidth={1.5}
+              />
+            </AreaChart>
+          </ChartContainer>
+          <div className="flex items-center gap-3 -mt-1">
+            <div className="flex items-center gap-1">
+              <span className="inline-block size-2 rounded-sm" style={{ background: dailyLineChartConfig.percent.color }} />
+              <span className="text-[9px] text-muted-foreground">Working % (30m avg)</span>
             </div>
-          );
-        })}
+            <button
+              className="ml-auto p-0.5 rounded transition-colors text-foreground bg-muted"
+              onClick={() => setShowLineChart(false)}
+              title="Show timeline"
+            >
+              <ChartLine className="size-3" />
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Timeline bar */}
+          <div className="relative h-5 rounded-full bg-muted/80 overflow-hidden">
+            {/* Layer 1: Working region bands */}
+            {timeline.workBands.map((band, i) => (
+              <div
+                key={i}
+                className="absolute inset-y-0 bg-blue-400/50 dark:bg-blue-500/30"
+                style={{
+                  left: `${pct(band.startH)}%`,
+                  width: `${pct(band.endH) - pct(band.startH)}%`,
+                }}
+              />
+            ))}
 
-        {/* "Now" marker (today only) */}
-        {isToday && nowH >= timeline.axisStart && nowH <= timeline.axisEnd && (
-          <div
-            className="absolute top-0 bottom-0 w-0.5 bg-foreground/70"
-            style={{ left: `${pct(nowH)}%` }}
-          />
-        )}
-      </div>
+            {/* Layer 2: Break segments (clipped to work bands) */}
+            {timeline.breakBands.map((band) => {
+              const left = pct(band.startH);
+              const width = pct(band.endH) - left;
+              if (width <= 0) return null;
 
-      {/* Time labels below the bar */}
-      <div className="relative h-4 mt-0.5">
-        <span className="absolute left-0 text-[9px] text-muted-foreground">
-          {formatHour(viewStart)}
-        </span>
-        <span className="absolute right-0 text-[9px] text-muted-foreground">
-          {formatHour(viewEnd)}
-        </span>
-        {isToday && nowH >= timeline.axisStart && nowH <= timeline.axisEnd &&
-          pct(nowH) > 10 && pct(nowH) < 90 && (
-          <span
-            className="absolute text-[9px] font-medium text-foreground/70 -translate-x-1/2"
-            style={{ left: `${pct(nowH)}%` }}
-          >
-            now
-          </span>
-        )}
-      </div>
+              return (
+                <div
+                  key={band.id}
+                  className="group absolute inset-y-0 bg-emerald-400/80 dark:bg-emerald-500/60"
+                  style={{ left: `${left}%`, width: `${width}%` }}
+                >
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10">
+                    <div className="bg-foreground text-background text-[10px] rounded px-1.5 py-0.5 whitespace-nowrap">
+                      {formatHour(band.startH)}–{formatHour(band.endH)}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
 
-      {/* Legend */}
-      <div className="flex items-center gap-3 mt-1">
-        <div className="flex items-center gap-1">
-          <span className="inline-block size-2 rounded-sm bg-blue-400/50 dark:bg-blue-500/30" />
-          <span className="text-[9px] text-muted-foreground">Working</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <span className="inline-block size-2 rounded-sm bg-emerald-400/80 dark:bg-emerald-500/60" />
-          <span className="text-[9px] text-muted-foreground">Break</span>
-        </div>
-        <span className="text-[9px] text-muted-foreground">
-          {timeline.breakBands.length} break{timeline.breakBands.length !== 1 ? "s" : ""}
-          {timeline.breakBands.length > 0 &&
-            ` · ${formatDuration(
-              Math.round(
-                timeline.breakBands.reduce(
-                  (sum, b) => sum + (b.endH - b.startH) * 3600,
-                  0,
-                ),
-              ),
-            )}`}
-        </span>
-        <button
-          className={`ml-auto p-0.5 rounded transition-colors ${
-            zoomMode
-              ? "text-foreground bg-muted"
-              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-          }`}
-          onClick={() => {
-            if (zoomMode) {
-              setZoomMode(false);
-              setZoomRange(null);
-            } else {
-              setZoomMode(true);
-              setZoomRange([timeline.axisStart, timeline.axisEnd]);
-            }
-          }}
-          title="Zoom time range"
-        >
-          <Search className="size-3" />
-        </button>
-      </div>
+            {/* "Now" marker (today only) */}
+            {isToday && nowH >= timeline.axisStart && nowH <= timeline.axisEnd && (
+              <div
+                className="absolute top-0 bottom-0 w-0.5 bg-foreground/70"
+                style={{ left: `${pct(nowH)}%` }}
+              />
+            )}
+          </div>
 
-      {/* Zoom range slider */}
-      {zoomMode && zoomRange && (
-        <div className="flex items-center gap-2 mt-2">
-          <span className="text-[9px] text-muted-foreground w-8 text-right shrink-0">
-            {formatHour(zoomRange[0])}
-          </span>
-          <Slider
-            min={timeline.axisStart * 60}
-            max={timeline.axisEnd * 60}
-            step={5}
-            minStepsBetweenValues={3}
-            value={[zoomRange[0] * 60, zoomRange[1] * 60]}
-            onValueChange={(v) => {
-              const arr = v as number[];
-              setZoomRange([arr[0] / 60, arr[1] / 60]);
-            }}
-          />
-          <span className="text-[9px] text-muted-foreground w-8 shrink-0">
-            {formatHour(zoomRange[1])}
-          </span>
-        </div>
+          {/* Time labels below the bar */}
+          <div className="relative h-4 mt-0.5">
+            <span className="absolute left-0 text-[9px] text-muted-foreground">
+              {formatHour(viewStart)}
+            </span>
+            <span className="absolute right-0 text-[9px] text-muted-foreground">
+              {formatHour(viewEnd)}
+            </span>
+            {isToday && nowH >= timeline.axisStart && nowH <= timeline.axisEnd &&
+              pct(nowH) > 10 && pct(nowH) < 90 && (
+              <span
+                className="absolute text-[9px] font-medium text-foreground/70 -translate-x-1/2"
+                style={{ left: `${pct(nowH)}%` }}
+              >
+                now
+              </span>
+            )}
+          </div>
+
+          {/* Legend */}
+          <div className="flex items-center gap-3 mt-1">
+            <div className="flex items-center gap-1">
+              <span className="inline-block size-2 rounded-sm bg-blue-400/50 dark:bg-blue-500/30" />
+              <span className="text-[9px] text-muted-foreground">Working</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="inline-block size-2 rounded-sm bg-emerald-400/80 dark:bg-emerald-500/60" />
+              <span className="text-[9px] text-muted-foreground">Break</span>
+            </div>
+            <span className="text-[9px] text-muted-foreground">
+              {timeline.breakBands.length} break{timeline.breakBands.length !== 1 ? "s" : ""}
+              {timeline.breakBands.length > 0 &&
+                ` · ${formatDuration(
+                  Math.round(
+                    timeline.breakBands.reduce(
+                      (sum, b) => sum + (b.endH - b.startH) * 3600,
+                      0,
+                    ),
+                  ),
+                )}`}
+            </span>
+            <button
+              className={`ml-auto p-0.5 rounded transition-colors ${
+                zoomMode
+                  ? "text-foreground bg-muted"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+              }`}
+              onClick={() => {
+                if (zoomMode) {
+                  setZoomMode(false);
+                  setZoomRange(null);
+                } else {
+                  setZoomMode(true);
+                  setZoomRange([timeline.axisStart, timeline.axisEnd]);
+                }
+              }}
+              title="Zoom time range"
+            >
+              <Search className="size-3" />
+            </button>
+            <button
+              className="p-0.5 rounded transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
+              onClick={() => setShowLineChart(true)}
+              title="Show activity chart"
+            >
+              <ChartLine className="size-3" />
+            </button>
+          </div>
+
+          {/* Zoom range slider */}
+          {zoomMode && zoomRange && (
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-[9px] text-muted-foreground w-8 text-right shrink-0">
+                {formatHour(zoomRange[0])}
+              </span>
+              <Slider
+                min={timeline.axisStart * 60}
+                max={timeline.axisEnd * 60}
+                step={5}
+                minStepsBetweenValues={3}
+                value={[zoomRange[0] * 60, zoomRange[1] * 60]}
+                onValueChange={(v) => {
+                  const arr = v as number[];
+                  setZoomRange([arr[0] / 60, arr[1] / 60]);
+                }}
+              />
+              <span className="text-[9px] text-muted-foreground w-8 shrink-0">
+                {formatHour(zoomRange[1])}
+              </span>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
