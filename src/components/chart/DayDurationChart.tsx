@@ -61,7 +61,7 @@ export function DayDurationChart({
   const leastMarkers = markers.filter((m) => m.kind === "least");
 
   return (
-    <div className="px-4 mb-3">
+    <div>
       <div className="text-[10px] text-muted-foreground text-center mb-2">
         Daily Work &amp; Break Extremes
       </div>

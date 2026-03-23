@@ -8,7 +8,7 @@ export function ClockTimeChart({
   latestClockOutH: number;
 }) {
   return (
-    <div className="px-4 mb-3">
+    <div>
       <div className="text-[10px] text-muted-foreground text-center mb-2">
         Clock In &amp; Out Extremes
       </div>

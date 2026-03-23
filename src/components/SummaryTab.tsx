@@ -167,7 +167,7 @@ export function SummaryTab() {
     <div className="flex-1 min-h-0 flex flex-col">
       <AllTimeSummary />
       <div className="h-px bg-border mx-4 shrink-0" />
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-1">
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-4 [&>[data-chart-type=histogram]]:!-mb-2">
         {clockTimeData && (
           <ClockTimeChart
             earliestClockInH={clockTimeData.earliestClockInH}
@@ -193,7 +193,7 @@ export function SummaryTab() {
           tickIntervalSec={60}
         />
         <div>
-          <div className="text-[10px] text-muted-foreground text-center mb-3">
+          <div className="text-[10px] text-muted-foreground text-center mb-2">
             All-time Records
           </div>
           {stats.map((s) => (

@@ -70,7 +70,7 @@ export function SessionHistogram({
     xTicks.push(v);
 
   return (
-    <div>
+    <div data-chart-type="histogram">
       <div className="text-[10px] text-muted-foreground text-center mb-2">
         {title}
       </div>
