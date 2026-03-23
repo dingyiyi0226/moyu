@@ -15,6 +15,7 @@ import {
 import { useCurrency } from "@/hooks/useCurrency";
 import { ClockTimeChart } from "@/components/chart/ClockTimeChart";
 import { DayDurationChart } from "@/components/chart/DayDurationChart";
+import { WeekDurationChart } from "@/components/chart/WeekDurationChart";
 import { SessionHistogram } from "@/components/chart/SessionHistogram";
 
 function AllTimeSummary() {
@@ -58,17 +59,20 @@ export function SummaryTab() {
     });
   }, [sessions, workIntervals, pauseIntervals]);
 
-  const stats = useMemo(() => {
-    if (dayStats.length === 0) return [];
-
-    const weekMap = new Map<string, { workSec: number; breakSec: number }>();
+  const weekMap = useMemo(() => {
+    const map = new Map<string, { workSec: number; breakSec: number }>();
     for (const ds of dayStats) {
       const wk = formatWeekLabel(ds.key);
-      const existing = weekMap.get(wk) ?? { workSec: 0, breakSec: 0 };
+      const existing = map.get(wk) ?? { workSec: 0, breakSec: 0 };
       existing.workSec += ds.workSec;
       existing.breakSec += ds.breakSec;
-      weekMap.set(wk, existing);
+      map.set(wk, existing);
     }
+    return map;
+  }, [dayStats]);
+
+  const stats = useMemo(() => {
+    if (dayStats.length === 0) return [];
 
     return [
       maxDayRecord(dayStats, "workSec", "Most work in a day"),
@@ -78,7 +82,7 @@ export function SummaryTab() {
       longestWorkWithoutBreak(workIntervals, sessions),
       longestSingleBreak(sessions),
     ].filter((r): r is StatRecord => r != null);
-  }, [dayStats, workIntervals, sessions]);
+  }, [dayStats, weekMap, workIntervals, sessions]);
 
   const dayDurationData = useMemo(() => {
     if (dayStats.length === 0) return null;
@@ -97,6 +101,24 @@ export function SummaryTab() {
       leastBreakSec: minBreak === Infinity ? 0 : minBreak,
     };
   }, [dayStats]);
+
+  const weekDurationData = useMemo(() => {
+    if (weekMap.size === 0) return null;
+    let maxWork = 0, minWork = Infinity, maxBreak = 0, minBreak = Infinity;
+    for (const ws of weekMap.values()) {
+      if (ws.workSec > maxWork) maxWork = ws.workSec;
+      if (ws.workSec > 0 && ws.workSec < minWork) minWork = ws.workSec;
+      if (ws.breakSec > maxBreak) maxBreak = ws.breakSec;
+      if (ws.breakSec > 0 && ws.breakSec < minBreak) minBreak = ws.breakSec;
+    }
+    if (maxWork === 0 && maxBreak === 0) return null;
+    return {
+      mostWorkSec: maxWork,
+      leastWorkSec: minWork === Infinity ? 0 : minWork,
+      mostBreakSec: maxBreak,
+      leastBreakSec: minBreak === Infinity ? 0 : minBreak,
+    };
+  }, [weekMap]);
 
   const workDurationsMs = useMemo(() => {
     const ws = getWorkSessions(workIntervals, sessions);
@@ -153,6 +175,7 @@ export function SummaryTab() {
           />
         )}
         {dayDurationData && <DayDurationChart {...dayDurationData} />}
+        {weekDurationData && <WeekDurationChart {...weekDurationData} />}
         <SessionHistogram
           title="Work Session Duration"
           durationsMs={workDurationsMs}
