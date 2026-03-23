@@ -1,18 +1,12 @@
 import { useMemo } from "react";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
+import { formatDuration } from "@/lib/timeUtils";
 
 interface BinData {
   binSec: number; // upper bound in seconds
   label: string;
   count: number;
-}
-
-function formatBinLabel(seconds: number): string {
-  if (seconds < 60) return `${seconds}s`;
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return s === 0 ? `${m}m` : `${m}m${s}s`;
 }
 
 function buildBins(durationsMs: number[], binSeconds: number): BinData[] {
@@ -25,7 +19,7 @@ function buildBins(durationsMs: number[], binSeconds: number): BinData[] {
   const bins: BinData[] = [];
   for (let i = 0; i < binCount; i++) {
     const hi = (i + 1) * binSeconds;
-    bins.push({ binSec: hi, label: formatBinLabel(hi), count: 0 });
+    bins.push({ binSec: hi, label: formatDuration(hi, true), count: 0 });
   }
 
   for (const s of secs) {
@@ -84,7 +78,7 @@ export function SessionHistogram({
             axisLine={false}
             tick={{ fontSize: 8 }}
             ticks={xTicks}
-            tickFormatter={(v: number) => formatBinLabel(v)}
+            tickFormatter={(v: number) => formatDuration(v, true)}
           />
           <YAxis
             tickLine={false}

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChartLine, Search } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
-import { formatDuration, formatHour } from "@/lib/timeUtils";
+import { formatDuration, formatFractionalHour } from "@/lib/timeUtils";
 import { type DayTimeline, toPercent } from "./utils";
 
 export function DailyTimelineChart({
@@ -52,7 +52,7 @@ export function DailyTimelineChart({
             >
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10">
                 <div className="bg-foreground text-background text-[10px] rounded px-1.5 py-0.5 whitespace-nowrap">
-                  {formatHour(band.startH)}–{formatHour(band.endH)}
+                  {formatFractionalHour(band.startH)}–{formatFractionalHour(band.endH)}
                 </div>
               </div>
             </div>
@@ -71,10 +71,10 @@ export function DailyTimelineChart({
       {/* Time labels below the bar */}
       <div className="relative h-4 mt-0.5">
         <span className="absolute left-0 text-[9px] text-muted-foreground">
-          {formatHour(viewStart)}
+          {formatFractionalHour(viewStart)}
         </span>
         <span className="absolute right-0 text-[9px] text-muted-foreground">
-          {formatHour(viewEnd)}
+          {formatFractionalHour(viewEnd)}
         </span>
         {isToday && nowH >= timeline.axisStart && nowH <= timeline.axisEnd &&
           pct(nowH) > 10 && pct(nowH) < 90 && (
@@ -141,7 +141,7 @@ export function DailyTimelineChart({
       {zoomMode && zoomRange && (
         <div className="flex items-center gap-2 mt-2">
           <span className="text-[9px] text-muted-foreground w-8 text-right shrink-0">
-            {formatHour(zoomRange[0])}
+            {formatFractionalHour(zoomRange[0])}
           </span>
           <Slider
             min={timeline.axisStart * 60}
@@ -155,7 +155,7 @@ export function DailyTimelineChart({
             }}
           />
           <span className="text-[9px] text-muted-foreground w-8 shrink-0">
-            {formatHour(zoomRange[1])}
+            {formatFractionalHour(zoomRange[1])}
           </span>
         </div>
       )}

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useAppStore, type BreakSession } from "@/store/appStore";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { formatHour, getWeekSunday, getIntervalsForDate } from "@/lib/timeUtils";
+import { formatFractionalHour, getWeekSunday, getIntervalsForDate } from "@/lib/timeUtils";
 import { getDayScheduleForDate } from "@/lib/scheduleUtils";
 import { navBtnClass } from "@/lib/utils";
 import { aggregateWeekStats } from "@/lib/statsUtils";
@@ -81,7 +81,7 @@ export function WeeklyChart({
       .sort(([a], [b]) => a - b)
       .map(([hour, { total, count }]) => ({
         hour,
-        label: formatHour(hour),
+        label: formatFractionalHour(hour),
         percent: Math.round((total / count) * 10) / 10,
       }));
   }, [showLineChart, weekOffset, allWorkIntervals, sessions, schedule, dailySchedules]);

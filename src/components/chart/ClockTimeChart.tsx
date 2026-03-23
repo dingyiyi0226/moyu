@@ -1,4 +1,4 @@
-import { formatHour } from "@/lib/timeUtils";
+import { formatFractionalHour } from "@/lib/timeUtils";
 
 export function ClockTimeChart({
   earliestClockInH,
@@ -44,13 +44,13 @@ export function ClockTimeChart({
           className="absolute text-[9px] font-medium text-foreground/70 -translate-x-1/2"
           style={{ left: "20%" }}
         >
-          {formatHour(earliestClockInH)}
+          {formatFractionalHour(earliestClockInH)}
         </span>
         <span
           className="absolute text-[9px] font-medium text-foreground/70 -translate-x-1/2"
           style={{ left: "80%" }}
         >
-          {formatHour(latestClockOutH)}
+          {formatFractionalHour(latestClockOutH)}
         </span>
       </div>
     </div>

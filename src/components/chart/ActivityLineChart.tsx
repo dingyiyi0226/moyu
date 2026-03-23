@@ -1,5 +1,5 @@
 import { ChartLine } from "lucide-react";
-import { formatHour } from "@/lib/timeUtils";
+import { formatFractionalHour } from "@/lib/timeUtils";
 import { Area, AreaChart, ReferenceLine, XAxis, YAxis, Tooltip } from "recharts";
 import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
 
@@ -63,7 +63,7 @@ export function ActivityLineChart({
             tickLine={false}
             axisLine={false}
             tick={{ fontSize: 9 }}
-            tickFormatter={(h: number) => formatHour(h)}
+            tickFormatter={(h: number) => formatFractionalHour(h)}
             ticks={xTicks}
             domain={domain}
             type="number"

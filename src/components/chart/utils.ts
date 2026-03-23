@@ -1,5 +1,5 @@
 import { type BreakSession, type WorkInterval } from "@/store/appStore";
-import { getDateKey, formatHour } from "@/lib/timeUtils";
+import { getDateKey, formatFractionalHour, toFractionalHour } from "@/lib/timeUtils";
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -16,11 +16,6 @@ export interface DayTimeline {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
-
-function toFractionalHour(timestamp: number): number {
-  const d = new Date(timestamp);
-  return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
-}
 
 /** Clip [start, end] to [rangeStart, rangeEnd]. Returns null if no overlap. */
 function clipRange(
@@ -134,7 +129,7 @@ export function computeMovingAverage(
       percent = workTime > 0 ? Math.round((netWork / workTime) * 1000) / 10 : 0;
     }
 
-    points.push({ hour: h, label: formatHour(h), percent });
+    points.push({ hour: h, label: formatFractionalHour(h), percent });
   }
 
   return points;

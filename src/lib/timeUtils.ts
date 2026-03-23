@@ -3,10 +3,15 @@ export function getDateKey(ts: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function formatDuration(totalSec: number): string {
+export function formatDuration(totalSec: number, compact = false): string {
   const h = Math.floor(totalSec / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
   const s = Math.floor(totalSec % 60);
+  if (compact) {
+    if (h > 0) return m > 0 ? `${h}h${m}m` : `${h}h`;
+    if (m > 0) return s > 0 ? `${m}m${s}s` : `${m}m`;
+    return `${s}s`;
+  }
   if (h > 0) return `${h}h ${m}m`;
   if (m > 0) return `${m}m ${s}s`;
   return `${s}s`;
@@ -19,8 +24,14 @@ export function formatTimer(totalSec: number): string {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
+/** Convert a Unix timestamp to a fractional hour (e.g. 09:30 → 9.5). */
+export function toFractionalHour(timestamp: number): number {
+  const d = new Date(timestamp);
+  return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
+}
+
 /** Format fractional hour (e.g. 9.5) to "HH:MM" */
-export function formatHour(h: number): string {
+export function formatFractionalHour(h: number): string {
   const hours = Math.floor(h);
   const mins = Math.round((h - hours) * 60);
   return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
@@ -106,5 +117,15 @@ export function getIntervalsForDate<T extends { start: number; end: number | nul
     const end = iv.end ?? Date.now();
     return iv.start <= deMs && end >= dsMs;
   });
+}
+
+/** Check whether a Unix timestamp falls on the same calendar day as a Date. */
+export function isSameDay(ts: number, ref: Date): boolean {
+  const d = new Date(ts);
+  return (
+    d.getDate() === ref.getDate() &&
+    d.getMonth() === ref.getMonth() &&
+    d.getFullYear() === ref.getFullYear()
+  );
 }
 

@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { useAppStore, type BreakSession, type PauseInterval, type WorkInterval } from "@/store/appStore";
-import { formatTimeSec, formatDuration } from "@/lib/timeUtils";
+import { formatTimeSec, formatDuration, isSameDay } from "@/lib/timeUtils";
 import { useCurrency } from "@/hooks/useCurrency";
 import { LogIn, LogOut, Check, X, Presentation } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -97,15 +97,6 @@ interface DayGroup {
   date: string;
   entries: TimelineEntry[];
   breakTotal: number;
-}
-
-function isSameDay(ts: number, ref: Date): boolean {
-  const d = new Date(ts);
-  return (
-    d.getDate() === ref.getDate() &&
-    d.getMonth() === ref.getMonth() &&
-    d.getFullYear() === ref.getFullYear()
-  );
 }
 
 type CtxMenu = { x: number; y: number; entry: TimelineEntry } | null;
