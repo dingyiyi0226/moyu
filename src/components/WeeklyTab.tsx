@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useAppStore } from "@/store/appStore";
-import { WeeklyChart } from "@/components/WeeklyChart";
+import { WeeklyChart } from "@/components/chart";
 import { formatDuration, getWeekSunday } from "@/lib/timeUtils";
 import { aggregateWeekStats } from "@/lib/statsUtils";
 import { useCurrency } from "@/hooks/useCurrency";

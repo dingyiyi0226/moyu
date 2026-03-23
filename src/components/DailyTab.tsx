@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useAppStore } from "@/store/appStore";
 import { BreakView } from "@/components/BreakView";
 import { WorkingView } from "@/components/WorkingView";
-import { DailyChart } from "@/components/DailyChart";
+import { DailyChart } from "@/components/chart";
 import { HistoryList } from "@/components/HistoryList";
 
 function today(): Date {

@@ -1,3 +1,4 @@
+import { ChartLine } from "lucide-react";
 import { formatHour } from "@/lib/timeUtils";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts";
 import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
@@ -35,12 +36,14 @@ export function ActivityLineChart({
   domain,
   legendLabel,
   gradientId,
+  onToggle,
 }: {
   data: { hour: number; label: string; percent: number }[];
   xTicks: number[];
   domain: [number, number];
   legendLabel: string;
   gradientId: string;
+  onToggle: () => void;
 }) {
   return (
     <>
@@ -87,6 +90,13 @@ export function ActivityLineChart({
           <span className="inline-block size-2 rounded-sm" style={{ background: lineChartConfig.percent.color }} />
           <span className="text-[9px] text-muted-foreground">{legendLabel}</span>
         </div>
+        <button
+          className="ml-auto p-0.5 rounded transition-colors text-foreground bg-muted"
+          onClick={onToggle}
+          title="Switch chart type"
+        >
+          <ChartLine className="size-3" />
+        </button>
       </div>
     </>
   );
