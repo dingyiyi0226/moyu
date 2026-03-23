@@ -10,7 +10,6 @@ import {
   longestWorkWithoutBreak,
   maxDayRecord,
   maxWeekRecord,
-  timeOfDayRecords,
   type KeyedDayStats,
   type StatRecord,
 } from "@/lib/statsUtils";
@@ -68,18 +67,12 @@ export function SummaryTab() {
       weekMap.set(wk, existing);
     }
 
-    const clockOutTs = workIntervals
-      .filter((iv): iv is typeof iv & { end: number } => iv.end != null)
-      .map((iv) => iv.end);
-
     return [
       maxDayRecord(dayStats, "workSec", "Most work in a day"),
       maxWeekRecord(weekMap, "workSec", "Most work in a week"),
       maxDayRecord(dayStats, "breakSec", "Most break in a day"),
       maxWeekRecord(weekMap, "breakSec", "Most break in a week"),
       longestWorkWithoutBreak(workIntervals, sessions),
-      timeOfDayRecords(workIntervals.map((iv) => iv.start), "Earliest clock in", "Latest clock in")[0],
-      timeOfDayRecords(clockOutTs, "Earliest clock out", "Latest clock out")[1],
       longestSingleBreak(sessions),
     ].filter((r): r is StatRecord => r != null);
   }, [sessions, workIntervals, pauseIntervals]);
