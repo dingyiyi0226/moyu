@@ -68,18 +68,16 @@ export function getMsOfDay(ts: number): number {
   return d.getHours() * 3600000 + d.getMinutes() * 60000 + d.getSeconds() * 1000;
 }
 
-/** Get a week label "Mar 2 – Mar 8" for a date string "YYYY-MM-DD". */
+/** Get a week label "Mar 2 – Mar 8" (Sun–Sat) for a date string "YYYY-MM-DD". */
 export function formatWeekLabel(dateKey: string): string {
   const d = new Date(dateKey + "T00:00:00");
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  const monday = new Date(d);
-  monday.setDate(diff);
+  const sunday = new Date(d);
+  sunday.setDate(d.getDate() - d.getDay());
+  const saturday = new Date(sunday);
+  saturday.setDate(sunday.getDate() + 6);
   const fmt = (dt: Date) =>
     dt.toLocaleDateString([], { month: "short", day: "numeric" });
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  return `${fmt(monday)} – ${fmt(sunday)}`;
+  return `${fmt(sunday)} – ${fmt(saturday)}`;
 }
 
 /** Get the Sunday (start) of a week by offset from the current week. */
