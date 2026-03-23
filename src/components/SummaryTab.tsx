@@ -5,6 +5,7 @@ import {
   computeAllTimeTotals,
   computeDayStats,
   getAllDateKeys,
+  getWorkSessions,
   longestSingleBreak,
   longestWorkWithoutBreak,
   maxDayRecord,
@@ -14,6 +15,7 @@ import {
   type StatRecord,
 } from "@/lib/statsUtils";
 import { useCurrency } from "@/hooks/useCurrency";
+import { SessionHistogram } from "@/components/chart/SessionHistogram";
 
 function AllTimeSummary() {
   const sessions = useAppStore((s) => s.sessions);
@@ -81,6 +83,16 @@ export function SummaryTab() {
     ].filter((r): r is StatRecord => r != null);
   }, [sessions, workIntervals, pauseIntervals]);
 
+  const workDurationsMs = useMemo(() => {
+    const ws = getWorkSessions(workIntervals, sessions);
+    return ws.map((w) => w.end - w.start);
+  }, [workIntervals, sessions]);
+
+  const breakDurationsMs = useMemo(
+    () => sessions.map((s) => s.endTime - s.startTime),
+    [sessions],
+  );
+
   if (stats.length === 0) {
     return (
       <div className="flex-1 min-h-0 px-4 py-12 text-center text-[11px] text-muted-foreground">
@@ -93,28 +105,46 @@ export function SummaryTab() {
     <div className="flex-1 min-h-0 flex flex-col">
       <AllTimeSummary />
       <div className="h-px bg-border mx-4 shrink-0" />
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-2">
-        <div className="text-[10px] text-muted-foreground text-center mb-3">
-          All-time Records
-        </div>
-        {stats.map((s) => (
-          <div
-            key={s.label}
-            className="flex items-baseline justify-between gap-2 py-1.5 border-b border-border last:border-0"
-          >
-            <span className="text-[11px] text-muted-foreground shrink-0">
-              {s.label}
-            </span>
-            <div className="text-right">
-              <span className="text-[13px] font-semibold">{s.value}</span>
-              {s.detail && (
-                <span className="text-[10px] text-muted-foreground ml-1.5">
-                  {s.detail}
-                </span>
-              )}
-            </div>
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-1">
+        <SessionHistogram
+          title="Work Session Duration"
+          durationsMs={workDurationsMs}
+          binSeconds={60}
+          config={{ work: { label: "Work", color: "oklch(0.707 0.165 254.624)" } }}
+          dataKey="work"
+          tickIntervalSec={600}
+        />
+        <SessionHistogram
+          title="Break Session Duration"
+          durationsMs={breakDurationsMs}
+          binSeconds={5}
+          config={{ break: { label: "Break", color: "oklch(0.765 0.177 163.223)" } }}
+          dataKey="break"
+          tickIntervalSec={60}
+        />
+        <div>
+          <div className="text-[10px] text-muted-foreground text-center mb-3">
+            All-time Records
           </div>
-        ))}
+          {stats.map((s) => (
+            <div
+              key={s.label}
+              className="flex items-baseline justify-between gap-2 py-1.5 border-b border-border last:border-0"
+            >
+              <span className="text-[11px] text-muted-foreground shrink-0">
+                {s.label}
+              </span>
+              <div className="text-right">
+                <span className="text-[13px] font-semibold">{s.value}</span>
+                {s.detail && (
+                  <span className="text-[10px] text-muted-foreground ml-1.5">
+                    {s.detail}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
