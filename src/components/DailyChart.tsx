@@ -7,9 +7,8 @@ import {
   formatDuration,
   formatHour,
   getIntervalsForDate,
-  getBreakSessionsForDate,
-  toPercent,
 } from "@/lib/timeUtils";
+import { getBreakSessionsForDate, toPercent } from "@/components/chart/utils";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts";
 import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
 import { navBtnClass } from "@/lib/utils";

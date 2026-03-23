@@ -1,5 +1,3 @@
-import { type BreakSession } from "@/store/appStore";
-
 export function getDateKey(ts: number): string {
   const d = new Date(ts);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -112,19 +110,3 @@ export function getIntervalsForDate<T extends { start: number; end: number | nul
   });
 }
 
-export function getBreakSessionsForDate(
-  allSessions: BreakSession[],
-  date: Date,
-): BreakSession[] {
-  const key = getDateKey(date.getTime());
-  return allSessions
-    .filter((s) => getDateKey(s.startTime) === key)
-    .sort((a, b) => a.startTime - b.startTime);
-}
-
-/** Convert fractional hour to % position within the schedule bar */
-export function toPercent(hour: number, schedStart: number, schedEnd: number): number {
-  const total = schedEnd - schedStart;
-  if (total <= 0) return 0;
-  return Math.max(0, Math.min(100, ((hour - schedStart) / total) * 100));
-}

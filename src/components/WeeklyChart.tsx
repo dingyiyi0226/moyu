@@ -3,11 +3,11 @@ import { useAppStore, type BreakSession } from "@/store/appStore";
 import { ChevronLeft, ChevronRight, ChartLine } from "lucide-react";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts";
 import { type ChartConfig, ChartContainer } from "@/components/ui/chart";
-import { formatDuration, formatHour, getWeekSunday, getIntervalsForDate, getBreakSessionsForDate } from "@/lib/timeUtils";
+import { formatDuration, formatHour, getWeekSunday, getIntervalsForDate } from "@/lib/timeUtils";
 import { getDayScheduleForDate } from "@/lib/scheduleUtils";
 import { navBtnClass } from "@/lib/utils";
 import { aggregateWeekStats } from "@/lib/statsUtils";
-import { buildDayTimeline, computeMovingAverage } from "@/components/DailyChart";
+import { buildDayTimeline, computeMovingAverage, getBreakSessionsForDate } from "@/components/chart/utils";
 
 function formatWeekLabel(weekOffset: number): string {
   if (weekOffset === 0) return "This Week";
