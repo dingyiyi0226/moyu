@@ -4,6 +4,7 @@ import { getDayScheduleForDate } from "@/lib/scheduleUtils";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getIntervalsForDate } from "@/lib/timeUtils";
 import { navBtnClass } from "@/lib/utils";
+import { useNow } from "@/hooks/useNow";
 import { buildDayTimeline, computeMovingAverage, getBreakSessionsForDate } from "./utils";
 import { DailyTimelineChart } from "./DailyTimelineChart";
 import { ActivityLineChart } from "./ActivityLineChart";
@@ -45,7 +46,7 @@ export function DailyChart({
   const effectiveOffset = todayOnly ? 0 : dayOffset;
   const targetDate = fixedDate ?? getOffsetDate(effectiveOffset);
 
-  const now = new Date();
+  const now = useNow();
   const nowH = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
   const isToday = targetDate.toDateString() === now.toDateString();
 

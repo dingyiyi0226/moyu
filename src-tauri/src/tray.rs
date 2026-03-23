@@ -4,7 +4,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::TrayIconBuilder,
-    AppHandle, Manager,
+    AppHandle, Emitter, Manager,
 };
 
 use crate::updater;
@@ -98,6 +98,7 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                 {
                     if let Ok(panel) = app.get_webview_panel("main") {
                         panel.show_and_make_key();
+                        let _ = app.emit("panel:shown", ());
                     }
                 }
                 #[cfg(not(target_os = "macos"))]
@@ -105,6 +106,7 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                     if let Some(window) = app.get_webview_window("main") {
                         let _ = window.show();
                         let _ = window.set_focus();
+                        let _ = app.emit("panel:shown", ());
                     }
                 }
             }
@@ -140,6 +142,7 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                                 }
                             }
                             panel.show_and_make_key();
+                            let _ = app.emit("panel:shown", ());
                         }
                     }
                 }
@@ -162,6 +165,7 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
                             }
                             let _ = window.show();
                             let _ = window.set_focus();
+                            let _ = app.emit("panel:shown", ());
                         }
                     }
                 }

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useAppStore } from "@/store/appStore";
 import { isCurrentlyWorking, perSecondRate, getDayScheduleForDate } from "@/lib/scheduleUtils";
 import { getDateKey } from "@/lib/timeUtils";
+import { useNow } from "@/hooks/useNow";
 import { LogIn, LogOut, PenLine, Coffee, Clock, CalendarClock, Presentation } from "lucide-react";
 import { RangePicker } from "@/components/BreakPicker";
 import { formatDuration } from "@/lib/timeUtils";
@@ -29,6 +30,7 @@ export function WorkingView() {
   const startPause = useAppStore((s) => s.startPause);
   const endPause = useAppStore((s) => s.endPause);
   const { formatCurrency } = useCurrency();
+  const now = useNow();
   const isWorking = isCurrentlyWorking(workIntervals);
 
   const isPaused = pauseIntervals.length > 0 && pauseIntervals[pauseIntervals.length - 1].end === null;
@@ -36,14 +38,13 @@ export function WorkingView() {
   const [customPicker, setCustomPicker] = useState<"choose" | "break" | "work" | "schedule" | null>(null);
 
   const todaySchedule = useMemo(() => {
-    return getDayScheduleForDate(new Date(), schedule, dailySchedules);
-  }, [schedule, dailySchedules]);
+    return getDayScheduleForDate(now, schedule, dailySchedules);
+  }, [now, schedule, dailySchedules]);
 
   const todayStats = useMemo(() => {
-    const today = new Date();
-    const stats = computeDayStats(sessions, workIntervals, today, pauseIntervals);
+    const stats = computeDayStats(sessions, workIntervals, now, pauseIntervals);
     return { earnings: stats.earnings, breakDuration: stats.breakSec, workDuration: stats.workSec };
-  }, [sessions, workIntervals, pauseIntervals]);
+  }, [sessions, workIntervals, pauseIntervals, now]);
 
   return (
     <div className="space-y-4">

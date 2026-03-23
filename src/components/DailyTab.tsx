@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAppStore } from "@/store/appStore";
+import { useNow } from "@/hooks/useNow";
 import { BreakView } from "@/components/BreakView";
 import { WorkingView } from "@/components/WorkingView";
 import { DailyChart } from "@/components/chart";
@@ -26,7 +27,8 @@ export function DailyTab({
     () => initialDate ?? today(),
   );
 
-  const isToday = selectedDate.toDateString() === new Date().toDateString();
+  const now = useNow();
+  const isToday = selectedDate.toDateString() === now.toDateString();
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
