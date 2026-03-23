@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useAppStore } from "@/store/appStore";
-import { formatDuration, formatWeekLabel } from "@/lib/timeUtils";
+import { formatDuration, formatWeekLabel, getMsOfDay } from "@/lib/timeUtils";
 import {
   computeAllTimeTotals,
   computeDayStats,
@@ -15,6 +15,7 @@ import {
   type StatRecord,
 } from "@/lib/statsUtils";
 import { useCurrency } from "@/hooks/useCurrency";
+import { ClockTimeChart } from "@/components/chart/ClockTimeChart";
 import { SessionHistogram } from "@/components/chart/SessionHistogram";
 
 function AllTimeSummary() {
@@ -93,6 +94,31 @@ export function SummaryTab() {
     [sessions],
   );
 
+  const clockTimeData = useMemo(() => {
+    const clockIns = workIntervals.map((iv) => iv.start);
+    const clockOuts = workIntervals
+      .filter((iv): iv is typeof iv & { end: number } => iv.end != null)
+      .map((iv) => iv.end);
+    if (clockIns.length === 0 || clockOuts.length === 0) return null;
+
+    let earliestInMs = Infinity;
+    for (const ts of clockIns) {
+      const ms = getMsOfDay(ts);
+      if (ms < earliestInMs) earliestInMs = ms;
+    }
+    let latestOutMs = -1;
+    for (const ts of clockOuts) {
+      const ms = getMsOfDay(ts);
+      if (ms > latestOutMs) latestOutMs = ms;
+    }
+    if (latestOutMs < 0) return null;
+
+    return {
+      earliestClockInH: earliestInMs / 3_600_000,
+      latestClockOutH: latestOutMs / 3_600_000,
+    };
+  }, [workIntervals]);
+
   if (stats.length === 0) {
     return (
       <div className="flex-1 min-h-0 px-4 py-12 text-center text-[11px] text-muted-foreground">
@@ -106,6 +132,12 @@ export function SummaryTab() {
       <AllTimeSummary />
       <div className="h-px bg-border mx-4 shrink-0" />
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-1">
+        {clockTimeData && (
+          <ClockTimeChart
+            earliestClockInH={clockTimeData.earliestClockInH}
+            latestClockOutH={clockTimeData.latestClockOutH}
+          />
+        )}
         <SessionHistogram
           title="Work Session Duration"
           durationsMs={workDurationsMs}
