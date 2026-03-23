@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { load } from "@tauri-apps/plugin-store";
 import { invoke } from "@tauri-apps/api/core";
 import { getDateKey } from "@/lib/timeUtils";
-import { DEFAULT_SCHEDULE, perSecondRate } from "@/lib/scheduleUtils";
+import { DEFAULT_SCHEDULE, perSecondRate, getDayScheduleForDate } from "@/lib/scheduleUtils";
 
 export type SalaryPeriod = "annual" | "monthly" | "hourly";
 
@@ -225,7 +225,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     const state = get();
     if (state.currentBreakStart) {
       const durationSec = (timestamp - state.currentBreakStart) / 1000;
-      const earnings = durationSec * perSecondRate(state.salary, state.schedule);
+      const breakDate = new Date(state.currentBreakStart);
+      const daySchedule = getDayScheduleForDate(breakDate, state.schedule, state.dailySchedules);
+      const adjusted = { days: { ...state.schedule.days, [breakDate.getDay()]: daySchedule } };
+      const earnings = durationSec * perSecondRate(state.salary, adjusted);
       const session: BreakSession = {
         id: `${state.currentBreakStart}-${timestamp}`,
         startTime: state.currentBreakStart,
