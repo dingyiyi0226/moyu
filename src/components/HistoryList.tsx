@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { useAppStore, type BreakSession, type PauseInterval, type WorkInterval } from "@/store/appStore";
-import { formatTimeSec } from "@/lib/timeUtils";
+import { formatTimeSec, formatDuration } from "@/lib/timeUtils";
 import { useCurrency } from "@/hooks/useCurrency";
 import { LogIn, LogOut, Check, X, Presentation } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -336,13 +336,9 @@ export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: 
                   const { pause } = entry;
                   const isEditing = editing?.entry.kind === "pause" && editing.entry.pause.start === pause.start;
                   const isOngoing = pause.end === null;
-                  let duration: string | null = null;
-                  if (!isOngoing && pause.end !== null) {
-                    const totalSec = Math.round((pause.end - pause.start) / 1000);
-                    const m = Math.floor(totalSec / 60);
-                    const s = totalSec % 60;
-                    duration = m > 0 ? `${m}m ${s}s` : `${s}s`;
-                  }
+                  const duration = (!isOngoing && pause.end !== null)
+                    ? formatDuration(Math.round((pause.end - pause.start) / 1000))
+                    : null;
 
                   return (
                     <div
@@ -379,12 +375,7 @@ export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: 
 
                 const { session } = entry;
                 const isEditing = editing?.entry.kind === "break" && editing.entry.session.id === session.id;
-                const totalSec = Math.round(
-                  (session.endTime - session.startTime) / 1000,
-                );
-                const m = Math.floor(totalSec / 60);
-                const s = totalSec % 60;
-                const duration = m > 0 ? `${m}m ${s}s` : `${s}s`;
+                const duration = formatDuration(Math.round((session.endTime - session.startTime) / 1000));
 
                 const reasonLabel: Record<string, string> = {
                   manual: "manual",
