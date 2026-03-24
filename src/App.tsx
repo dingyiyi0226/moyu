@@ -44,7 +44,14 @@ function App() {
       ) : (
         <>
           <div className="flex items-center justify-between px-4 pt-4 pb-2 shrink-0">
-            <h1 className="text-[13px] font-semibold tracking-tight text-foreground/80">
+            <h1
+              className="text-[13px] font-semibold tracking-tight text-foreground/80 cursor-pointer"
+              onClick={() => {
+                setDailyInitialDate(null);
+                setDailyKey((k) => k + 1);
+                setTab("daily");
+              }}
+            >
               {import.meta.env.DEV ? "Moyu - Dev" : "Moyu"}
             </h1>
             <button
