@@ -134,6 +134,33 @@ export function computeAllTimeTotals(
   return { earnings: totalEarnings, workDuration: totalWorkSec, breakDuration: totalBreakSec };
 }
 
+export interface DurationExtremes {
+  mostWorkSec: number;
+  leastWorkSec: number;
+  mostBreakSec: number;
+  leastBreakSec: number;
+}
+
+/** Find max/min work and break seconds from an iterable of {workSec, breakSec}. */
+export function computeExtremes(
+  items: Iterable<{ workSec: number; breakSec: number }>,
+): DurationExtremes | null {
+  let maxWork = 0, minWork = Infinity, maxBreak = 0, minBreak = Infinity;
+  for (const s of items) {
+    if (s.workSec > maxWork) maxWork = s.workSec;
+    if (s.workSec > 0 && s.workSec < minWork) minWork = s.workSec;
+    if (s.breakSec > maxBreak) maxBreak = s.breakSec;
+    if (s.breakSec > 0 && s.breakSec < minBreak) minBreak = s.breakSec;
+  }
+  if (maxWork === 0 && maxBreak === 0) return null;
+  return {
+    mostWorkSec: maxWork,
+    leastWorkSec: minWork === Infinity ? 0 : minWork,
+    mostBreakSec: maxBreak,
+    leastBreakSec: minBreak === Infinity ? 0 : minBreak,
+  };
+}
+
 // ── Record helpers ────────────────────────────────────────────────────
 
 export function extremeDayRecord(

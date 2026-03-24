@@ -4,6 +4,7 @@ import { formatDuration, formatWeekLabel, getDateKey, getMsOfDay } from "@/lib/t
 import {
   computeAllTimeTotals,
   computeDayStats,
+  computeExtremes,
   getAllDateKeys,
   getWorkSessions,
 } from "@/lib/statsUtils";
@@ -81,41 +82,15 @@ export function SummaryTab() {
     return map;
   }, [weekMap, thisWeekLabel]);
 
-  const dayDurationData = useMemo(() => {
-    if (pastDayStats.length === 0) return null;
-    let maxWork = 0, minWork = Infinity, maxBreak = 0, minBreak = Infinity;
-    for (const ds of pastDayStats) {
-      if (ds.workSec > maxWork) maxWork = ds.workSec;
-      if (ds.workSec > 0 && ds.workSec < minWork) minWork = ds.workSec;
-      if (ds.breakSec > maxBreak) maxBreak = ds.breakSec;
-      if (ds.breakSec > 0 && ds.breakSec < minBreak) minBreak = ds.breakSec;
-    }
-    if (maxWork === 0 && maxBreak === 0) return null;
-    return {
-      mostWorkSec: maxWork,
-      leastWorkSec: minWork === Infinity ? 0 : minWork,
-      mostBreakSec: maxBreak,
-      leastBreakSec: minBreak === Infinity ? 0 : minBreak,
-    };
-  }, [pastDayStats]);
+  const dayDurationData = useMemo(
+    () => computeExtremes(pastDayStats),
+    [pastDayStats],
+  );
 
-  const weekDurationData = useMemo(() => {
-    if (pastWeekMap.size === 0) return null;
-    let maxWork = 0, minWork = Infinity, maxBreak = 0, minBreak = Infinity;
-    for (const ws of pastWeekMap.values()) {
-      if (ws.workSec > maxWork) maxWork = ws.workSec;
-      if (ws.workSec > 0 && ws.workSec < minWork) minWork = ws.workSec;
-      if (ws.breakSec > maxBreak) maxBreak = ws.breakSec;
-      if (ws.breakSec > 0 && ws.breakSec < minBreak) minBreak = ws.breakSec;
-    }
-    if (maxWork === 0 && maxBreak === 0) return null;
-    return {
-      mostWorkSec: maxWork,
-      leastWorkSec: minWork === Infinity ? 0 : minWork,
-      mostBreakSec: maxBreak,
-      leastBreakSec: minBreak === Infinity ? 0 : minBreak,
-    };
-  }, [pastWeekMap]);
+  const weekDurationData = useMemo(
+    () => computeExtremes(pastWeekMap.values()),
+    [pastWeekMap],
+  );
 
   const workDurationsMs = useMemo(() => {
     const ws = getWorkSessions(workIntervals, sessions);
