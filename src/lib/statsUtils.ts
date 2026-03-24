@@ -129,26 +129,35 @@ export function computeAllTimeTotals(
 
 export type KeyedDayStats = { key: string; workSec: number; breakSec: number };
 
-export function maxDayRecord(
+export function extremeDayRecord(
   dayStats: KeyedDayStats[],
   field: "workSec" | "breakSec",
+  mode: "max" | "min",
   label: string,
 ): StatRecord | null {
-  const best = dayStats.reduce((b, d) => (d[field] > b[field] ? d : b), dayStats[0]);
-  if (best[field] <= 0) return null;
+  const candidates = dayStats.filter((d) => d[field] > 0);
+  if (candidates.length === 0) return null;
+  const cmp = mode === "max"
+    ? (a: number, b: number) => a > b
+    : (a: number, b: number) => a < b;
+  const best = candidates.reduce((b, d) => (cmp(d[field], b[field]) ? d : b), candidates[0]);
   return { label, value: formatDuration(best[field]), detail: formatDateKey(best.key) };
 }
 
-export function maxWeekRecord(
+export function extremeWeekRecord(
   weekMap: Map<string, { workSec: number; breakSec: number }>,
   field: "workSec" | "breakSec",
+  mode: "max" | "min",
   label: string,
 ): StatRecord | null {
-  let best = { key: "", value: 0 };
+  let best = { key: "", value: mode === "max" ? 0 : Infinity };
+  const cmp = mode === "max"
+    ? (a: number, b: number) => a > b
+    : (a: number, b: number) => a < b;
   for (const [wk, s] of weekMap) {
-    if (s[field] > best.value) best = { key: wk, value: s[field] };
+    if (s[field] > 0 && cmp(s[field], best.value)) best = { key: wk, value: s[field] };
   }
-  if (best.value <= 0) return null;
+  if (best.value <= 0 || best.value === Infinity) return null;
   return { label, value: formatDuration(best.value), detail: best.key };
 }
 
@@ -182,7 +191,7 @@ export function getWorkSessions(
   return result;
 }
 
-export function longestWorkWithoutBreak(
+export function longestWorkSession(
   workIntervals: WorkInterval[],
   sessions: BreakSession[],
 ): StatRecord | null {
@@ -198,7 +207,7 @@ export function longestWorkWithoutBreak(
   }
   if (longestMs <= 0) return null;
   return {
-    label: "Longest work without break",
+    label: "Longest work session",
     value: formatDuration(Math.round(longestMs / 1000)),
     detail: formatDateKey(getDateKey(longestTs)),
   };
@@ -245,7 +254,7 @@ export function longestSingleBreak(sessions: BreakSession[]): StatRecord | null 
   }
   if (longestMs <= 0) return null;
   return {
-    label: "Longest single break",
+    label: "Longest break session",
     value: formatDuration(Math.round(longestMs / 1000)),
     detail: formatDateKey(getDateKey(longestTs)),
   };
