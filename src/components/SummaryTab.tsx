@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useAppStore } from "@/store/appStore";
-import { formatDuration, formatWeekLabel, getMsOfDay } from "@/lib/timeUtils";
+import { formatDuration, formatWeekLabel, getDateKey, getMsOfDay } from "@/lib/timeUtils";
 import {
   computeAllTimeTotals,
   computeDayStats,
@@ -71,23 +71,37 @@ export function SummaryTab() {
     return map;
   }, [dayStats]);
 
+  const todayKey = getDateKey(Date.now());
+  const thisWeekLabel = formatWeekLabel(todayKey);
+
+  // Exclude today / this week from extremes so incomplete periods don't skew records
+  const pastDayStats = useMemo(
+    () => dayStats.filter((ds) => ds.key !== todayKey),
+    [dayStats, todayKey],
+  );
+  const pastWeekMap = useMemo(() => {
+    const map = new Map(weekMap);
+    map.delete(thisWeekLabel);
+    return map;
+  }, [weekMap, thisWeekLabel]);
+
   const stats = useMemo(() => {
-    if (dayStats.length === 0) return [];
+    if (pastDayStats.length === 0) return [];
 
     return [
-      maxDayRecord(dayStats, "workSec", "Most work in a day"),
-      maxWeekRecord(weekMap, "workSec", "Most work in a week"),
-      maxDayRecord(dayStats, "breakSec", "Most break in a day"),
-      maxWeekRecord(weekMap, "breakSec", "Most break in a week"),
+      maxDayRecord(pastDayStats, "workSec", "Most work in a day"),
+      maxWeekRecord(pastWeekMap, "workSec", "Most work in a week"),
+      maxDayRecord(pastDayStats, "breakSec", "Most break in a day"),
+      maxWeekRecord(pastWeekMap, "breakSec", "Most break in a week"),
       longestWorkWithoutBreak(workIntervals, sessions),
       longestSingleBreak(sessions),
     ].filter((r): r is StatRecord => r != null);
-  }, [dayStats, weekMap, workIntervals, sessions]);
+  }, [pastDayStats, pastWeekMap, workIntervals, sessions]);
 
   const dayDurationData = useMemo(() => {
-    if (dayStats.length === 0) return null;
+    if (pastDayStats.length === 0) return null;
     let maxWork = 0, minWork = Infinity, maxBreak = 0, minBreak = Infinity;
-    for (const ds of dayStats) {
+    for (const ds of pastDayStats) {
       if (ds.workSec > maxWork) maxWork = ds.workSec;
       if (ds.workSec > 0 && ds.workSec < minWork) minWork = ds.workSec;
       if (ds.breakSec > maxBreak) maxBreak = ds.breakSec;
@@ -100,12 +114,12 @@ export function SummaryTab() {
       mostBreakSec: maxBreak,
       leastBreakSec: minBreak === Infinity ? 0 : minBreak,
     };
-  }, [dayStats]);
+  }, [pastDayStats]);
 
   const weekDurationData = useMemo(() => {
-    if (weekMap.size === 0) return null;
+    if (pastWeekMap.size === 0) return null;
     let maxWork = 0, minWork = Infinity, maxBreak = 0, minBreak = Infinity;
-    for (const ws of weekMap.values()) {
+    for (const ws of pastWeekMap.values()) {
       if (ws.workSec > maxWork) maxWork = ws.workSec;
       if (ws.workSec > 0 && ws.workSec < minWork) minWork = ws.workSec;
       if (ws.breakSec > maxBreak) maxBreak = ws.breakSec;
@@ -118,7 +132,7 @@ export function SummaryTab() {
       mostBreakSec: maxBreak,
       leastBreakSec: minBreak === Infinity ? 0 : minBreak,
     };
-  }, [weekMap]);
+  }, [pastWeekMap]);
 
   const workDurationsMs = useMemo(() => {
     const ws = getWorkSessions(workIntervals, sessions);
