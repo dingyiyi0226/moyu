@@ -93,6 +93,10 @@ export function SummaryTab() {
       extremeDayRecord(pastDayStats, "workSec", "min", "Least work in a day"),
       extremeWeekRecord(pastWeekMap, "workSec", "max", "Most work in a week"),
       extremeWeekRecord(pastWeekMap, "workSec", "min", "Least work in a week"),
+      extremeDayRecord(pastDayStats, "breakSec", "max", "Most break in a day"),
+      extremeDayRecord(pastDayStats, "breakSec", "min", "Least break in a day"),
+      extremeWeekRecord(pastWeekMap, "breakSec", "max", "Most break in a week"),
+      extremeWeekRecord(pastWeekMap, "breakSec", "min", "Least break in a week"),
       longestWorkSession(workIntervals, sessions),
       longestSingleBreak(sessions),
     ].filter((r): r is StatRecord => r != null);
