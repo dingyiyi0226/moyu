@@ -2,12 +2,12 @@ import { type BreakSession, type PauseInterval, type WorkInterval } from "@/stor
 import {
   formatDateKey,
   formatDuration,
-  formatTime,
   getDateKey,
   getIntervalsForDate,
   getWeekSunday,
-  getMsOfDay,
 } from "@/lib/timeUtils";
+
+// ── Types ─────────────────────────────────────────────────────────────
 
 export interface DayStats {
   breakSec: number;
@@ -16,6 +16,26 @@ export interface DayStats {
   earnings: number;
   breakCount: number;
 }
+
+export interface WeekDayStats extends DayStats {
+  key: string;
+  label: string;
+}
+
+export type KeyedDayStats = { key: string; workSec: number; breakSec: number };
+
+export interface StatRecord {
+  label: string;
+  value: string;
+  detail?: string;
+}
+
+export interface WorkSession {
+  start: number; // Unix timestamp ms
+  end: number;   // Unix timestamp ms
+}
+
+// ── Day / week computation ────────────────────────────────────────────
 
 export function computeDayStats(
   sessions: BreakSession[],
@@ -59,11 +79,6 @@ export function computeDayStats(
 
 const WEEK_DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export interface WeekDayStats extends DayStats {
-  key: string;
-  label: string;
-}
-
 /** Aggregate daily stats for a full week (Sun–Sat). */
 export function aggregateWeekStats(
   sessions: BreakSession[],
@@ -81,13 +96,7 @@ export function aggregateWeekStats(
   });
 }
 
-// ── Overall / all-time stats ──────────────────────────────────────────
-
-export interface StatRecord {
-  label: string;
-  value: string;
-  detail?: string;
-}
+// ── All-time computation ──────────────────────────────────────────────
 
 /** Collect all unique date keys from work intervals and break sessions. */
 export function getAllDateKeys(
@@ -127,8 +136,6 @@ export function computeAllTimeTotals(
 
 // ── Record helpers ────────────────────────────────────────────────────
 
-export type KeyedDayStats = { key: string; workSec: number; breakSec: number };
-
 export function extremeDayRecord(
   dayStats: KeyedDayStats[],
   field: "workSec" | "breakSec",
@@ -159,11 +166,6 @@ export function extremeWeekRecord(
   }
   if (best.value <= 0 || best.value === Infinity) return null;
   return { label, value: formatDuration(best.value), detail: best.key };
-}
-
-export interface WorkSession {
-  start: number; // Unix timestamp ms
-  end: number;   // Unix timestamp ms
 }
 
 /** Split work intervals into continuous work sessions by removing break gaps. */
@@ -213,38 +215,6 @@ export function longestWorkSession(
   };
 }
 
-/** Find earliest & latest timestamps by time-of-day and return as StatRecords. */
-export function timeOfDayRecords(
-  timestamps: number[],
-  earliestLabel: string,
-  latestLabel: string,
-): StatRecord[] {
-  if (timestamps.length === 0) return [];
-  let earliestMs = Infinity, earliestTs = 0;
-  let latestMs = -1, latestTs = 0;
-  for (const ts of timestamps) {
-    const ms = getMsOfDay(ts);
-    if (ms < earliestMs) { earliestMs = ms; earliestTs = ts; }
-    if (ms > latestMs) { latestMs = ms; latestTs = ts; }
-  }
-  const records: StatRecord[] = [];
-  if (earliestTs > 0) {
-    records.push({
-      label: earliestLabel,
-      value: formatTime(earliestTs),
-      detail: formatDateKey(getDateKey(earliestTs)),
-    });
-  }
-  if (latestTs > 0) {
-    records.push({
-      label: latestLabel,
-      value: formatTime(latestTs),
-      detail: formatDateKey(getDateKey(latestTs)),
-    });
-  }
-  return records;
-}
-
 export function longestSingleBreak(sessions: BreakSession[]): StatRecord | null {
   let longestMs = 0;
   let longestTs = 0;
@@ -259,4 +229,3 @@ export function longestSingleBreak(sessions: BreakSession[]): StatRecord | null 
     detail: formatDateKey(getDateKey(longestTs)),
   };
 }
-
