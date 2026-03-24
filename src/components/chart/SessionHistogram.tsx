@@ -19,7 +19,7 @@ function buildBins(durationsMs: number[], binSeconds: number): BinData[] {
   const bins: BinData[] = [];
   for (let i = 0; i < binCount; i++) {
     const hi = (i + 1) * binSeconds;
-    bins.push({ binSec: hi, label: formatDuration(hi, true), count: 0 });
+    bins.push({ binSec: hi, label: formatDuration(hi), count: 0 });
   }
 
   for (const s of secs) {
@@ -78,7 +78,7 @@ export function SessionHistogram({
             axisLine={false}
             tick={{ fontSize: 8 }}
             ticks={xTicks}
-            tickFormatter={(v: number) => formatDuration(v, true)}
+            tickFormatter={(v: number) => formatDuration(v)}
           />
           <YAxis
             tickLine={false}

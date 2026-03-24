@@ -3,17 +3,12 @@ export function getDateKey(ts: number): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function formatDuration(totalSec: number, compact = false): string {
+export function formatDuration(totalSec: number): string {
   const h = Math.floor(totalSec / 3600);
   const m = Math.floor((totalSec % 3600) / 60);
   const s = Math.floor(totalSec % 60);
-  if (compact) {
-    if (h > 0) return m > 0 ? `${h}h${m}m` : `${h}h`;
-    if (m > 0) return s > 0 ? `${m}m${s}s` : `${m}m`;
-    return `${s}s`;
-  }
-  if (h > 0) return `${h}h ${m}m`;
-  if (m > 0) return `${m}m ${s}s`;
+  if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  if (m > 0) return s > 0 ? `${m}m ${s}s` : `${m}m`;
   return `${s}s`;
 }
 
