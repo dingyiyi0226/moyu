@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useAppStore, type BreakSession } from "@/store/appStore";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { formatFractionalHour, getWeekSunday, getIntervalsForDate } from "@/lib/timeUtils";
+import { formatFractionalHour, getDateKey, getWeekSunday, getIntervalsForDate } from "@/lib/timeUtils";
 import { getDayScheduleForDate } from "@/lib/scheduleUtils";
 import { navBtnClass } from "@/lib/utils";
 import { aggregateWeekStats } from "@/lib/statsUtils";
@@ -45,6 +45,9 @@ export function WeeklyChart({
     if (!showLineChart) return [];
 
     const sunday = getWeekSunday(weekOffset);
+    const now = new Date();
+    const todayKey = getDateKey(now.getTime());
+    const nowH = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
     const dailyAverages: { hour: number; percent: number }[][] = [];
 
     for (let i = 0; i < 7; i++) {
@@ -58,7 +61,8 @@ export function WeeklyChart({
       const schedStart = daySchedule.startMinute / 60;
       const schedEnd = daySchedule.endMinute / 60;
       const timeline = buildDayTimeline(schedStart, schedEnd, dayIntervals, daySessions);
-      dailyAverages.push(computeMovingAverage(timeline, 0.5, 5));
+      const isToday = getDateKey(date.getTime()) === todayKey;
+      dailyAverages.push(computeMovingAverage(timeline, 0.5, 5, isToday ? nowH : undefined));
     }
 
     if (dailyAverages.length === 0) return [];
