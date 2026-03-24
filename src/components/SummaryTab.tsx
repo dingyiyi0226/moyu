@@ -164,7 +164,7 @@ export function SummaryTab() {
           dataKey="break"
           tickIntervalSec={60}
         />
-        <AllTimeRecords />
+        <AllTimeRecords pastDayStats={pastDayStats} pastWeekMap={pastWeekMap} />
       </div>
     </div>
   );

@@ -1,55 +1,22 @@
 import { useMemo } from "react";
 import { useAppStore } from "@/store/appStore";
-import { formatWeekLabel, getDateKey } from "@/lib/timeUtils";
 import {
-  computeDayStats,
-  getAllDateKeys,
   longestSingleBreak,
   longestWorkSession,
   extremeDayRecord,
   extremeWeekRecord,
+  type KeyedDayStats,
   type StatRecord,
 } from "@/lib/statsUtils";
 
-export function AllTimeRecords() {
+interface AllTimeRecordsProps {
+  pastDayStats: KeyedDayStats[];
+  pastWeekMap: Map<string, { workSec: number; breakSec: number }>;
+}
+
+export function AllTimeRecords({ pastDayStats, pastWeekMap }: AllTimeRecordsProps) {
   const sessions = useAppStore((s) => s.sessions);
   const workIntervals = useAppStore((s) => s.workIntervals);
-  const pauseIntervals = useAppStore((s) => s.pauseIntervals);
-
-  const dayStats = useMemo(() => {
-    const dateKeys = getAllDateKeys(workIntervals, sessions);
-    if (dateKeys.length === 0) return [];
-    return dateKeys.map((dk) => {
-      const date = new Date(dk + "T00:00:00");
-      const s = computeDayStats(sessions, workIntervals, date, pauseIntervals);
-      return { key: dk, workSec: s.workSec, breakSec: s.breakSec };
-    });
-  }, [sessions, workIntervals, pauseIntervals]);
-
-  const weekMap = useMemo(() => {
-    const map = new Map<string, { workSec: number; breakSec: number }>();
-    for (const ds of dayStats) {
-      const wk = formatWeekLabel(ds.key);
-      const existing = map.get(wk) ?? { workSec: 0, breakSec: 0 };
-      existing.workSec += ds.workSec;
-      existing.breakSec += ds.breakSec;
-      map.set(wk, existing);
-    }
-    return map;
-  }, [dayStats]);
-
-  const todayKey = getDateKey(Date.now());
-  const thisWeekLabel = formatWeekLabel(todayKey);
-
-  const pastDayStats = useMemo(
-    () => dayStats.filter((ds) => ds.key !== todayKey),
-    [dayStats, todayKey],
-  );
-  const pastWeekMap = useMemo(() => {
-    const map = new Map(weekMap);
-    map.delete(thisWeekLabel);
-    return map;
-  }, [weekMap, thisWeekLabel]);
 
   const stats = useMemo(() => {
     if (pastDayStats.length === 0) return [];
