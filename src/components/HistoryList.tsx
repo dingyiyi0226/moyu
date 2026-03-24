@@ -99,7 +99,10 @@ interface DayGroup {
   breakTotal: number;
 }
 
-type CtxMenu = { x: number; y: number; entry: TimelineEntry } | null;
+type CtxMenu =
+  | { x: number; y: number; kind: "entry"; entry: TimelineEntry }
+  | { x: number; y: number; kind: "day"; dayGroup: DayGroup }
+  | null;
 
 export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: { todayOnly?: boolean; filterDate?: Date; filterWeekStart?: Date } = {}) {
   const allSessions = useAppStore((s) => s.sessions);
@@ -136,26 +139,50 @@ export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: 
   function handleContextMenu(e: React.MouseEvent, entry: TimelineEntry) {
     e.preventDefault();
     e.stopPropagation();
-    setCtxMenu({ x: e.clientX, y: e.clientY, entry });
+    setCtxMenu({ x: e.clientX, y: e.clientY, kind: "entry", entry });
   }
 
-  function handleDelete() {
-    if (!ctxMenu) return;
-    const { entry } = ctxMenu;
+  function handleDayContextMenu(e: React.MouseEvent, dayGroup: DayGroup) {
+    e.preventDefault();
+    e.stopPropagation();
+    setCtxMenu({ x: e.clientX, y: e.clientY, kind: "day", dayGroup });
+  }
+
+  function deleteEntry(entry: TimelineEntry) {
     if (entry.kind === "break") {
       removeSession(entry.session.id);
     } else if (entry.kind === "pause") {
       removePauseInterval(entry.pause.start);
     } else {
-      // clock-in and clock-out both belong to the same WorkInterval
       const start = entry.kind === "clock-in" ? entry.time : allWorkIntervals.find((iv) => iv.end === entry.time)?.start;
       if (start != null) removeWorkInterval(start);
+    }
+  }
+
+  function handleDelete() {
+    if (!ctxMenu || ctxMenu.kind !== "entry") return;
+    deleteEntry(ctxMenu.entry);
+    closeCtxMenu();
+  }
+
+  function handleDeleteDay() {
+    if (!ctxMenu || ctxMenu.kind !== "day") return;
+    const seen = new Set<string>();
+    for (const entry of ctxMenu.dayGroup.entries) {
+      // clock-in and clock-out share the same WorkInterval; deduplicate
+      if (entry.kind === "clock-in" || entry.kind === "clock-out") {
+        const start = entry.kind === "clock-in" ? entry.time : allWorkIntervals.find((iv) => iv.end === entry.time)?.start;
+        const key = `work-${start}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+      }
+      deleteEntry(entry);
     }
     closeCtxMenu();
   }
 
   function handleEdit() {
-    if (!ctxMenu) return;
+    if (!ctxMenu || ctxMenu.kind !== "entry") return;
     const { entry } = ctxMenu;
     const zero: TimeFields = { h: "00", m: "00", s: "00" };
     if (entry.kind === "break") {
@@ -262,7 +289,10 @@ export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: 
           <div key={group.date}>
             {groupIdx > 0 && <div className="h-px bg-border mx-4" />}
             <div className="px-4 pt-3 pb-1">
-              <div className="flex items-baseline justify-between mb-1.5">
+              <div
+                className="flex items-baseline justify-between mb-1.5"
+                onContextMenu={(e) => handleDayContextMenu(e, group)}
+              >
                 <span className="text-[11px] font-medium text-muted-foreground">
                   {group.date}
                 </span>
@@ -422,18 +452,29 @@ export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: 
           className="fixed z-50 min-w-[100px] rounded-md border bg-popover shadow-md py-1"
           style={{ top: ctxMenu.y, left: ctxMenu.x }}
         >
-          <button
-            onClick={handleEdit}
-            className="w-full px-3 py-1 text-left text-[12px] hover:bg-accent cursor-default"
-          >
-            Edit
-          </button>
-          <button
-            onClick={handleDelete}
-            className="w-full px-3 py-1 text-left text-[12px] text-destructive hover:bg-accent cursor-default"
-          >
-            Delete
-          </button>
+          {ctxMenu.kind === "entry" ? (
+            <>
+              <button
+                onClick={handleEdit}
+                className="w-full px-3 py-1 text-left text-[12px] hover:bg-accent cursor-default"
+              >
+                Edit
+              </button>
+              <button
+                onClick={handleDelete}
+                className="w-full px-3 py-1 text-left text-[12px] text-destructive hover:bg-accent cursor-default"
+              >
+                Delete
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={handleDeleteDay}
+              className="w-full px-3 py-1 text-left text-[12px] text-destructive hover:bg-accent cursor-default"
+            >
+              Delete Entire Day
+            </button>
+          )}
         </div>
       )}
     </>
