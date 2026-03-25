@@ -29,16 +29,60 @@ function AllTimeSummary() {
     [sessions, workIntervals, pauseIntervals],
   );
 
+  const { dayCount, weekCount } = useMemo(() => {
+    const dateKeys = getAllDateKeys(workIntervals, sessions);
+    const weeks = new Set(dateKeys.map(formatWeekLabel));
+    return { dayCount: dateKeys.length, weekCount: weeks.size };
+  }, [workIntervals, sessions]);
+
+  const weeklyAvg = weekCount > 0 ? totals.earnings / weekCount : 0;
+  const dailyAvg = dayCount > 0 ? totals.earnings / dayCount : 0;
+  const weeklyWorkSec = weekCount > 0 ? Math.round(totals.workDuration / weekCount) : 0;
+  const weeklyBreakSec = weekCount > 0 ? Math.round(totals.breakDuration / weekCount) : 0;
+  const dailyWorkSec = dayCount > 0 ? Math.round(totals.workDuration / dayCount) : 0;
+  const dailyBreakSec = dayCount > 0 ? Math.round(totals.breakDuration / dayCount) : 0;
+
   return (
-    <div className="px-4 py-3 text-center shrink-0">
-      <div className="text-[10px] text-muted-foreground">
-        All-time earnings
+    <div className="px-4 py-3 shrink-0">
+      <div className="text-sm text-muted-foreground mb-1">
+        You earned
       </div>
-      <div className="text-2xl font-semibold mt-0.5">
-        {formatCurrency(totals.earnings)}
-      </div>
-      <div className="text-[10px] text-muted-foreground mt-0.5">
-        Work {formatDuration(totals.workDuration)} &middot; Break {formatDuration(totals.breakDuration)}
+      <div className="flex flex-col gap-0.5">
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-2xl font-bold inline-block min-w-[5em] text-right">{formatCurrency(totals.earnings)}</span>
+        </div>
+        <div className="grid grid-cols-2 gap-3 mt-1">
+          <div className="rounded-xl bg-muted/50 p-3">
+            <div className="text-[10px] text-muted-foreground mb-1">Daily Average</div>
+            <div className="text-[9px] text-muted-foreground">earned</div>
+            <div className="text-sm font-bold leading-tight">{formatCurrency(dailyAvg)}</div>
+            <div className="grid grid-cols-2 gap-2 mt-1">
+              <div>
+                <div className="text-[9px] text-muted-foreground">break</div>
+                <div className="text-xs font-bold leading-tight">{formatDuration(dailyBreakSec)}</div>
+              </div>
+              <div>
+                <div className="text-[9px] text-muted-foreground">work</div>
+                <div className="text-xs font-bold leading-tight">{formatDuration(dailyWorkSec)}</div>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-xl bg-muted/50 p-3">
+            <div className="text-[10px] text-muted-foreground mb-1">Weekly Average</div>
+            <div className="text-[9px] text-muted-foreground">earned</div>
+            <div className="text-sm font-bold leading-tight">{formatCurrency(weeklyAvg)}</div>
+            <div className="grid grid-cols-2 gap-2 mt-1">
+              <div>
+                <div className="text-[9px] text-muted-foreground">break</div>
+                <div className="text-xs font-bold leading-tight">{formatDuration(weeklyBreakSec)}</div>
+              </div>
+              <div>
+                <div className="text-[9px] text-muted-foreground">work</div>
+                <div className="text-xs font-bold leading-tight">{formatDuration(weeklyWorkSec)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
