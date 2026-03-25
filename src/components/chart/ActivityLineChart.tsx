@@ -43,7 +43,7 @@ export function ActivityLineChart({
   domain: [number, number];
   legendLabel: string;
   gradientId: string;
-  onToggle: () => void;
+  onToggle?: () => void;
 }) {
   return (
     <>
@@ -92,13 +92,15 @@ export function ActivityLineChart({
           <span className="inline-block size-2 rounded-sm" style={{ background: lineChartConfig.percent.color }} />
           <span className="text-[9px] text-muted-foreground">{legendLabel}</span>
         </div>
-        <button
-          className="ml-auto p-0.5 rounded transition-colors text-foreground bg-muted"
-          onClick={onToggle}
-          title="Switch chart type"
-        >
-          <ChartLine className="size-3" />
-        </button>
+        {onToggle && (
+          <button
+            className="ml-auto p-0.5 rounded transition-colors text-foreground bg-muted"
+            onClick={onToggle}
+            title="Switch chart type"
+          >
+            <ChartLine className="size-3" />
+          </button>
+        )}
       </div>
     </>
   );

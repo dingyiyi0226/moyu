@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useAppStore } from "@/store/appStore";
-import { formatDuration, formatWeekLabel, getDateKey, getMsOfDay } from "@/lib/timeUtils";
+import { formatDuration, formatFractionalHour, formatWeekLabel, getDateKey, getIntervalsForDate, getMsOfDay } from "@/lib/timeUtils";
 import {
   computeAllTimeTotals,
   computeDayStats,
@@ -8,12 +8,15 @@ import {
   getAllDateKeys,
   getWorkSessions,
 } from "@/lib/statsUtils";
+import { getDayScheduleForDate } from "@/lib/scheduleUtils";
 import { useCurrency } from "@/hooks/useCurrency";
 import { ClockTimeChart } from "@/components/chart/ClockTimeChart";
 import { DayDurationChart } from "@/components/chart/DayDurationChart";
 import { WeekDurationChart } from "@/components/chart/WeekDurationChart";
 import { SessionHistogram } from "@/components/chart/SessionHistogram";
 import { AllTimeRecords } from "@/components/AllTimeRecords";
+import { ActivityLineChart } from "@/components/chart/ActivityLineChart";
+import { buildDayTimeline, computeMovingAverage, getBreakSessionsForDate } from "@/components/chart/utils";
 
 function AllTimeSummary() {
   const sessions = useAppStore((s) => s.sessions);
@@ -45,6 +48,8 @@ export function SummaryTab() {
   const sessions = useAppStore((s) => s.sessions);
   const workIntervals = useAppStore((s) => s.workIntervals);
   const pauseIntervals = useAppStore((s) => s.pauseIntervals);
+  const schedule = useAppStore((s) => s.schedule);
+  const dailySchedules = useAppStore((s) => s.dailySchedules);
 
   const dayStats = useMemo(() => {
     const dateKeys = getAllDateKeys(workIntervals, sessions);
@@ -127,6 +132,66 @@ export function SummaryTab() {
     };
   }, [workIntervals]);
 
+  const allTimeLineData = useMemo(() => {
+    const dateKeys = getAllDateKeys(workIntervals, sessions);
+    if (dateKeys.length === 0) return [];
+
+    const now = new Date();
+    const nowKey = getDateKey(now.getTime());
+    const nowH = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
+    const dailyAverages: { hour: number; percent: number }[][] = [];
+
+    for (const dk of dateKeys) {
+      const date = new Date(dk + "T00:00:00");
+      const dayIntervals = getIntervalsForDate(workIntervals, date);
+      if (dayIntervals.length === 0) continue;
+
+      const daySessions = getBreakSessionsForDate(sessions, date);
+      const daySchedule = getDayScheduleForDate(date, schedule, dailySchedules);
+      const schedStart = daySchedule.startMinute / 60;
+      const schedEnd = daySchedule.endMinute / 60;
+      const timeline = buildDayTimeline(schedStart, schedEnd, dayIntervals, daySessions);
+      dailyAverages.push(computeMovingAverage(timeline, 0.5, 5, dk === nowKey ? nowH : undefined));
+    }
+
+    if (dailyAverages.length === 0) return [];
+
+    const hourMap = new Map<number, { total: number; count: number }>();
+    for (const dayPoints of dailyAverages) {
+      for (const pt of dayPoints) {
+        const key = Math.round(pt.hour * 1000) / 1000;
+        const existing = hourMap.get(key);
+        if (existing) { existing.total += pt.percent; existing.count += 1; }
+        else hourMap.set(key, { total: pt.percent, count: 1 });
+      }
+    }
+
+    return Array.from(hourMap.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([hour, { total, count }]) => ({
+        hour,
+        label: formatFractionalHour(hour),
+        percent: Math.round((total / count) * 10) / 10,
+      }));
+  }, [workIntervals, sessions, schedule, dailySchedules]);
+
+  const allTimeXTicks = useMemo(() => {
+    if (allTimeLineData.length === 0) return [];
+    const minH = allTimeLineData[0].hour;
+    const maxH = allTimeLineData[allTimeLineData.length - 1].hour;
+    const range = maxH - minH;
+    const step = range > 6 ? 2 : 1;
+    const start = Math.ceil(minH / step) * step;
+    const ticks: number[] = [];
+    for (let h = start; h <= maxH; h += step) ticks.push(h);
+    return ticks;
+  }, [allTimeLineData]);
+
+  const allTimeDomain = useMemo((): [number, number] | undefined => {
+    if (allTimeLineData.length === 0) return undefined;
+    return [allTimeLineData[0].hour, allTimeLineData[allTimeLineData.length - 1].hour];
+  }, [allTimeLineData]);
+
   if (workIntervals.length === 0) {
     return (
       <div className="flex-1 min-h-0 px-4 py-12 text-center text-[11px] text-muted-foreground">
@@ -140,6 +205,20 @@ export function SummaryTab() {
       <AllTimeSummary />
       <div className="h-px bg-border mx-4 shrink-0" />
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-4 [&>[data-chart-type=histogram]]:!-mb-2">
+        {allTimeLineData.length > 0 && (
+          <div>
+            <div className="text-[10px] font-medium text-muted-foreground mb-1.5 text-center">
+              All-time Activity
+            </div>
+            <ActivityLineChart
+              data={allTimeLineData}
+              xTicks={allTimeXTicks}
+              domain={allTimeDomain ?? [0, 24]}
+              legendLabel="Avg working % (30m avg)"
+              gradientId="allTimeWorkGradient"
+            />
+          </div>
+        )}
         {clockTimeData && (
           <ClockTimeChart
             earliestClockInH={clockTimeData.earliestClockInH}
