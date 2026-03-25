@@ -11,6 +11,7 @@ import {
   type DaySchedule,
 } from "@/store/appStore";
 import { formatMinutes } from "@/lib/timeUtils";
+import { TimeInput, type TimeFields } from "@/components/ui/time-input";
 
 const periods: { value: SalaryPeriod; label: string }[] = [
   { value: "annual", label: "Annual" },
@@ -32,8 +33,16 @@ function timeAgo(ms: number): string {
   return `${days} day${days > 1 ? "s" : ""} ago`;
 }
 
-const selectClass =
-  "h-7 rounded-md border border-input bg-transparent px-1 text-xs outline-none transition-colors focus:border-foreground/30 focus:ring-1 focus:ring-foreground/10 appearance-none text-center";
+function minutesToFields(minutes: number): TimeFields {
+  return {
+    h: String(Math.floor(minutes / 60)).padStart(2, "0"),
+    m: String(minutes % 60).padStart(2, "0"),
+  };
+}
+
+function fieldsToMinutes(fields: TimeFields): number {
+  return (Number(fields.h) || 0) * 60 + (Number(fields.m) || 0);
+}
 
 export function SettingsPanel() {
   const salary = useAppStore((s) => s.salary);
@@ -277,67 +286,17 @@ export function SettingsPanel() {
                 {day.enabled ? (
                   editing ? (
                     <div className="flex items-center gap-1 flex-1 min-w-0">
-                      <select
-                        value={Math.floor(day.startMinute / 60)}
-                        onChange={(e) => {
-                          const h = Number(e.target.value);
-                          updateDayTime(idx, "startMinute", h * 60 + (day.startMinute % 60));
-                        }}
-                        className={selectClass}
-                      >
-                        {Array.from({ length: 24 }, (_, i) => (
-                          <option key={i} value={i}>
-                            {String(i).padStart(2, "0")}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="text-xs text-muted-foreground">:</span>
-                      <select
-                        value={day.startMinute % 60}
-                        onChange={(e) => {
-                          const m = Number(e.target.value);
-                          updateDayTime(idx, "startMinute", Math.floor(day.startMinute / 60) * 60 + m);
-                        }}
-                        className={selectClass}
-                      >
-                        {Array.from({ length: 12 }, (_, i) => i * 5).map((m) => (
-                          <option key={m} value={m}>
-                            {String(m).padStart(2, "0")}
-                          </option>
-                        ))}
-                      </select>
-
+                      <TimeInput
+                        value={minutesToFields(day.startMinute)}
+                        onChange={(v) => updateDayTime(idx, "startMinute", fieldsToMinutes(v))}
+                        showSeconds={false}
+                      />
                       <span className="text-[10px] text-muted-foreground mx-0.5">–</span>
-
-                      <select
-                        value={Math.floor(day.endMinute / 60)}
-                        onChange={(e) => {
-                          const h = Number(e.target.value);
-                          updateDayTime(idx, "endMinute", h * 60 + (day.endMinute % 60));
-                        }}
-                        className={selectClass}
-                      >
-                        {Array.from({ length: 24 }, (_, i) => (
-                          <option key={i} value={i}>
-                            {String(i).padStart(2, "0")}
-                          </option>
-                        ))}
-                      </select>
-                      <span className="text-xs text-muted-foreground">:</span>
-                      <select
-                        value={day.endMinute % 60}
-                        onChange={(e) => {
-                          const m = Number(e.target.value);
-                          updateDayTime(idx, "endMinute", Math.floor(day.endMinute / 60) * 60 + m);
-                        }}
-                        className={selectClass}
-                      >
-                        {Array.from({ length: 12 }, (_, i) => i * 5).map((m) => (
-                          <option key={m} value={m}>
-                            {String(m).padStart(2, "0")}
-                          </option>
-                        ))}
-                      </select>
+                      <TimeInput
+                        value={minutesToFields(day.endMinute)}
+                        onChange={(v) => updateDayTime(idx, "endMinute", fieldsToMinutes(v))}
+                        showSeconds={false}
+                      />
                     </div>
                   ) : (
                     <span className="text-xs text-muted-foreground">

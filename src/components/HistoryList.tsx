@@ -1,11 +1,9 @@
-import { useMemo, useState, useEffect, useCallback, useRef } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { useAppStore, type BreakSession, type PauseInterval, type WorkInterval } from "@/store/appStore";
 import { formatTimeSec, formatDuration, isSameDay } from "@/lib/timeUtils";
 import { useCurrency } from "@/hooks/useCurrency";
 import { LogIn, LogOut, Check, X, Presentation } from "lucide-react";
-import { Input } from "@/components/ui/input";
-
-interface TimeFields { h: string; m: string; s: string }
+import { TimeInput, type TimeFields } from "@/components/ui/time-input";
 
 function tsToFields(ts: number): TimeFields {
   const d = new Date(ts);
@@ -18,35 +16,8 @@ function tsToFields(ts: number): TimeFields {
 
 function fieldsToTs(fields: TimeFields, refTs: number): number {
   const d = new Date(refTs);
-  d.setHours(Number(fields.h), Number(fields.m), Number(fields.s), 0);
+  d.setHours(Number(fields.h), Number(fields.m), Number(fields.s ?? "0"), 0);
   return d.getTime();
-}
-
-function TimeInput({ value, onChange }: { value: TimeFields; onChange: (v: TimeFields) => void }) {
-  const mRef = useRef<HTMLInputElement>(null);
-  const sRef = useRef<HTMLInputElement>(null);
-
-  function handleChange(field: keyof TimeFields, raw: string) {
-    const digits = raw.replace(/\D/g, "").slice(0, 2);
-    const next = { ...value, [field]: digits };
-    onChange(next);
-    if (digits.length === 2) {
-      if (field === "h") mRef.current?.focus();
-      else if (field === "m") sRef.current?.focus();
-    }
-  }
-
-  const cls = "h-6 w-7 px-0 text-center text-[12px] tabular-nums";
-
-  return (
-    <div className="flex items-center">
-      <Input value={value.h} onChange={(e) => handleChange("h", e.target.value)} className={cls} />
-      <span className="text-muted-foreground text-[12px] mx-px">:</span>
-      <Input ref={mRef} value={value.m} onChange={(e) => handleChange("m", e.target.value)} className={cls} />
-      <span className="text-muted-foreground text-[12px] mx-px">:</span>
-      <Input ref={sRef} value={value.s} onChange={(e) => handleChange("s", e.target.value)} className={cls} />
-    </div>
-  );
 }
 
 type TimelineEntry =
