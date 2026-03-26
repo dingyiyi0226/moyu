@@ -6,7 +6,7 @@ import { Square } from "lucide-react";
 import { formatTimer } from "@/lib/timeUtils";
 import { useCurrency } from "@/hooks/useCurrency";
 
-export function BreakView() {
+export function BreakControls() {
   const { currentEarnings, currentBreakStart } = useBreakTimer();
   const { formatCurrency } = useCurrency();
   const salary = useAppStore((s) => s.salary);
