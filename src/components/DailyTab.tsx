@@ -3,7 +3,7 @@ import { useAppStore } from "@/store/appStore";
 import { useNow } from "@/hooks/useNow";
 import { BreakView } from "@/components/BreakView";
 import { WorkingView } from "@/components/WorkingView";
-import { DailyChart } from "@/components/chart";
+import { DailyChartSection } from "@/components/chart";
 import { HistoryList } from "@/components/HistoryList";
 
 function today(): Date {
@@ -54,7 +54,7 @@ export function DailyTab({
 
       <div className="h-px bg-border shrink-0" />
 
-      <DailyChart
+      <DailyChartSection
         sessions={sessions}
         fixedDate={selectedDate}
         onPrev={() => {

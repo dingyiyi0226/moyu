@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useAppStore } from "@/store/appStore";
-import { WeeklyChart } from "@/components/chart";
+import { WeeklyChartSection } from "@/components/chart";
 import { formatDuration, getWeekSunday } from "@/lib/timeUtils";
 import { aggregateWeekStats } from "@/lib/statsUtils";
 import { useCurrency } from "@/hooks/useCurrency";
@@ -57,7 +57,7 @@ export function WeeklyTab({ onBarClick }: { onBarClick?: (date: Date) => void })
     <div className="flex-1 min-h-0 flex flex-col">
       <WeeklySummary weekOffset={weekOffset} />
       <div className="h-px bg-border mx-4 shrink-0" />
-      <WeeklyChart sessions={sessions} onBarClick={onBarClick} weekOffset={weekOffset} onWeekOffsetChange={setWeekOffset} />
+      <WeeklyChartSection sessions={sessions} onBarClick={onBarClick} weekOffset={weekOffset} onWeekOffsetChange={setWeekOffset} />
       <div className="h-px bg-border mx-4 shrink-0" />
       <HistoryList filterWeekStart={getWeekSunday(weekOffset)} />
     </div>

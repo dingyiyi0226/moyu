@@ -1,6 +1,6 @@
 import { formatDuration } from "@/lib/timeUtils";
 
-interface WeekDurationChartProps {
+interface DailyDurationChartProps {
   mostWorkSec: number;
   leastWorkSec: number;
   mostBreakSec: number;
@@ -41,12 +41,12 @@ function DurationLabels({ markers, className }: { markers: Marker[]; className?:
   );
 }
 
-export function WeekDurationChart({
+export function DailyDurationChart({
   mostWorkSec,
   leastWorkSec,
   mostBreakSec,
   leastBreakSec,
-}: WeekDurationChartProps) {
+}: DailyDurationChartProps) {
   const markers: Marker[] = [
     { label: "Least break", sec: leastBreakSec, color: BREAK_COLOR_LIGHT, kind: "least" as const },
     { label: "Most break", sec: mostBreakSec, color: BREAK_COLOR, kind: "most" as const },
@@ -63,11 +63,12 @@ export function WeekDurationChart({
   return (
     <div>
       <div className="text-[10px] text-muted-foreground text-center mb-2">
-        Weekly Work &amp; Break Extremes
+        Daily Work &amp; Break Extremes
       </div>
 
       <DurationLabels markers={mostMarkers} className="mb-0.5" />
 
+      {/* Timeline bar with filled D-shaped markers (largest first, smallest on top) */}
       <div
         className="relative rounded-full bg-muted/80 overflow-hidden"
         style={{ height: BAR_H }}

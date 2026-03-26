@@ -4,7 +4,7 @@ import { isCurrentlyWorking, perSecondRate, getDayScheduleForDate } from "@/lib/
 import { getDateKey } from "@/lib/timeUtils";
 import { useNow } from "@/hooks/useNow";
 import { LogIn, LogOut, PenLine, Coffee, Clock, CalendarClock, Presentation } from "lucide-react";
-import { RangePicker } from "@/components/RangePicker";
+import { RangePicker } from "@/components/ui/range-picker";
 import { formatDuration } from "@/lib/timeUtils";
 import { computeDayStats } from "@/lib/statsUtils";
 import { useCurrency } from "@/hooks/useCurrency";

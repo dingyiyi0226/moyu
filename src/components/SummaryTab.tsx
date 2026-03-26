@@ -11,8 +11,8 @@ import {
 import { getDayScheduleForDate } from "@/lib/scheduleUtils";
 import { useCurrency } from "@/hooks/useCurrency";
 import { ClockTimeChart } from "@/components/chart/ClockTimeChart";
-import { DayDurationChart } from "@/components/chart/DayDurationChart";
-import { WeekDurationChart } from "@/components/chart/WeekDurationChart";
+import { DailyDurationChart } from "@/components/chart/DailyDurationChart";
+import { WeeklyDurationChart } from "@/components/chart/WeeklyDurationChart";
 import { SessionHistogram } from "@/components/chart/SessionHistogram";
 import { AllTimeRecords } from "@/components/AllTimeRecords";
 import { ActivityLineChart } from "@/components/chart/ActivityLineChart";
@@ -269,8 +269,8 @@ export function SummaryTab() {
             latestClockOutH={clockTimeData.latestClockOutH}
           />
         )}
-        {dayDurationData && <DayDurationChart {...dayDurationData} />}
-        {weekDurationData && <WeekDurationChart {...weekDurationData} />}
+        {dayDurationData && <DailyDurationChart {...dayDurationData} />}
+        {weekDurationData && <WeeklyDurationChart {...weekDurationData} />}
         <SessionHistogram
           title="Work Session Duration"
           durationsMs={workDurationsMs}

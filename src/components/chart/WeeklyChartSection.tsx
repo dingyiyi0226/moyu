@@ -19,7 +19,7 @@ function formatWeekLabel(weekOffset: number): string {
   return `${fmt(sunday)} – ${fmt(saturday)}`;
 }
 
-export function WeeklyChart({
+export function WeeklyChartSection({
   sessions,
   onBarClick,
   weekOffset,

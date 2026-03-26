@@ -1,2 +1,2 @@
-export { DailyChart } from "./DailyChart";
-export { WeeklyChart } from "./WeeklyChart";
+export { DailyChartSection } from "./DailyChartSection";
+export { WeeklyChartSection } from "./WeeklyChartSection";

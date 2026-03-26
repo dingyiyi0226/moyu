@@ -24,7 +24,7 @@ function formatDateLabel(dayOffset: number): string {
   return d.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
-export function DailyChart({
+export function DailyChartSection({
   sessions,
   todayOnly = false,
   fixedDate,
