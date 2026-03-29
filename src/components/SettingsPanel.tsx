@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { Pencil, Check, CloudUpload, CloudDownload, Loader2 } from "lucide-react";
+import { Pencil, Check, CloudUpload, CloudDownload, Loader2, Github } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { useCurrency } from "@/hooks/useCurrency";
 import { perSecondRate, weeklyWorkHours, DEFAULT_SCHEDULE } from "@/lib/scheduleUtils";
@@ -393,6 +393,20 @@ export function SettingsPanel() {
             {cloudStatus.message}
           </p>
         )}
+      </div>
+
+      {/* ── About ────────────────────────────────────────────── */}
+      <div className="-mt-3">
+        <div className="h-px bg-border mb-2" />
+        <a
+          href="https://github.com/dingyiyi0226/moyu"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Github className="size-3" />
+          Developed by dingyiyi0226
+        </a>
       </div>
     </div>
   );
