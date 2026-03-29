@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { Pencil, Check, CloudUpload, CloudDownload, Loader2, Github } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { useCurrency } from "@/hooks/useCurrency";
@@ -21,6 +21,12 @@ const periods: { value: SalaryPeriod; label: string }[] = [
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+
+interface BackupEntry {
+  filename: string;
+  date: string;
+  modified_ms: number;
+}
 
 function timeAgo(ms: number): string {
   const sec = Math.floor((Date.now() - ms) / 1000);
@@ -58,15 +64,9 @@ export function SettingsPanel() {
   const loadFromDisk = useAppStore((s) => s.loadFromDisk);
   const [cloudStatus, setCloudStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [cloudLoading, setCloudLoading] = useState<"save" | "load" | null>(null);
-  const [confirmRestore, setConfirmRestore] = useState(false);
-  const [lastBackupTime, setLastBackupTime] = useState<number | null>(null);
-
-  const fetchBackupTime = useCallback(async () => {
-    const time = await invoke<number | null>("get_icloud_backup_time");
-    setLastBackupTime(time);
-  }, []);
-
-  useEffect(() => { fetchBackupTime(); }, [fetchBackupTime]);
+  const [showBackups, setShowBackups] = useState(false);
+  const [backups, setBackups] = useState<BackupEntry[]>([]);
+  const [confirmRestore, setConfirmRestore] = useState<string | null>(null);
 
   const [editing, setEditing] = useState(false);
   const [days, setDays] = useState<Record<number, DaySchedule>>(() => ({
@@ -136,7 +136,6 @@ export function SettingsPanel() {
     try {
       await saveToDisk();
       await invoke("save_to_icloud");
-      await fetchBackupTime();
       setCloudStatus(null);
     } catch (e) {
       setCloudStatus({ type: "error", message: String(e) });
@@ -145,18 +144,33 @@ export function SettingsPanel() {
     }
   };
 
-  const handleLoadFromCloud = async () => {
-    if (!confirmRestore) {
-      setConfirmRestore(true);
-      setTimeout(() => setConfirmRestore(false), 3000);
+  const handleShowBackups = async () => {
+    if (showBackups) {
+      setShowBackups(false);
       return;
     }
-    setConfirmRestore(false);
+    try {
+      const list = await invoke<BackupEntry[]>("list_icloud_backups");
+      setBackups(list);
+      setShowBackups(true);
+    } catch (e) {
+      setCloudStatus({ type: "error", message: String(e) });
+    }
+  };
+
+  const handleLoadFromCloud = async (filename: string) => {
+    if (confirmRestore !== filename) {
+      setConfirmRestore(filename);
+      setTimeout(() => setConfirmRestore(null), 3000);
+      return;
+    }
+    setConfirmRestore(null);
     setCloudLoading("load");
     setCloudStatus(null);
     try {
-      await invoke("load_from_icloud");
+      await invoke("load_from_icloud", { filename });
       await loadFromDisk();
+      setShowBackups(false);
       setCloudStatus(null);
     } catch (e) {
       setCloudStatus({ type: "error", message: String(e) });
@@ -353,11 +367,6 @@ export function SettingsPanel() {
         <label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
           iCloud Backup
         </label>
-        {lastBackupTime && (
-          <p className="text-[10px] text-muted-foreground mt-0.5">
-            last sync: {timeAgo(lastBackupTime)}
-          </p>
-        )}
         <div className="flex gap-2 mt-2 px-3">
           <button
             onClick={handleSaveToCloud}
@@ -372,22 +381,57 @@ export function SettingsPanel() {
             Backup
           </button>
           <button
-            onClick={handleLoadFromCloud}
+            onClick={handleShowBackups}
             disabled={cloudLoading !== null}
             className={`flex-1 flex items-center justify-center gap-1.5 h-8 rounded-sm border text-xs font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none ${
-              confirmRestore
-                ? "border-red-500/50 text-red-400 hover:bg-red-500/10"
+              showBackups
+                ? "border-primary/50 text-primary hover:bg-primary/10"
                 : "border-input hover:bg-muted"
             }`}
           >
-            {cloudLoading === "load" ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : (
-              <CloudDownload className="size-3.5" />
-            )}
-            {confirmRestore ? "Overwrite?" : "Restore"}
+            <CloudDownload className="size-3.5" />
+            Restore
           </button>
         </div>
+        {showBackups && (
+          <div className="mt-2 px-3 max-h-32 overflow-y-auto space-y-1">
+            {backups.length === 0 ? (
+              <p className="text-[11px] text-muted-foreground text-center py-1">
+                No backups found
+              </p>
+            ) : (
+              backups.map((b) => (
+                <div
+                  key={b.filename}
+                  className="flex items-center justify-between text-[11px]"
+                >
+                  <span className="text-muted-foreground">
+                    {b.date}
+                    <span className="ml-1.5 text-[10px] opacity-60">
+                      {timeAgo(b.modified_ms)}
+                    </span>
+                  </span>
+                  <button
+                    onClick={() => handleLoadFromCloud(b.filename)}
+                    disabled={cloudLoading !== null}
+                    className={`flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[10px] font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none ${
+                      confirmRestore === b.filename
+                        ? "text-red-400 hover:bg-red-500/10"
+                        : "text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {cloudLoading === "load" ? (
+                      <Loader2 className="size-3 animate-spin" />
+                    ) : (
+                      <CloudDownload className="size-3" />
+                    )}
+                    {confirmRestore === b.filename ? "Overwrite?" : "Restore"}
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        )}
         {cloudStatus && (
           <p className="text-[11px] mt-1.5 text-center text-red-400">
             {cloudStatus.message}

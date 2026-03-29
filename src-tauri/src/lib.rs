@@ -38,7 +38,7 @@ pub fn run() {
             set_clocked_in,
             icloud::save_to_icloud,
             icloud::load_from_icloud,
-            icloud::get_icloud_backup_time,
+            icloud::list_icloud_backups,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]
