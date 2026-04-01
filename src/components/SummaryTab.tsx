@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useNow } from "@/hooks/useNow";
 import { useAppStore } from "@/store/appStore";
 import { formatDuration, formatFractionalHour, formatWeekLabel, getDateKey, getIntervalsForDate, getMsOfDay } from "@/lib/timeUtils";
 import {
@@ -89,6 +90,7 @@ function AllTimeSummary() {
 }
 
 export function SummaryTab() {
+  const now = useNow();
   const sessions = useAppStore((s) => s.sessions);
   const workIntervals = useAppStore((s) => s.workIntervals);
   const pauseIntervals = useAppStore((s) => s.pauseIntervals);
@@ -180,7 +182,6 @@ export function SummaryTab() {
     const dateKeys = getAllDateKeys(workIntervals, sessions);
     if (dateKeys.length === 0) return [];
 
-    const now = new Date();
     const nowKey = getDateKey(now.getTime());
     const nowH = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
     const dailyAverages: { hour: number; percent: number }[][] = [];
@@ -217,7 +218,7 @@ export function SummaryTab() {
         label: formatFractionalHour(hour),
         percent: Math.round((total / count) * 10) / 10,
       }));
-  }, [workIntervals, sessions, schedule, dailySchedules]);
+  }, [workIntervals, sessions, schedule, dailySchedules, now]);
 
   const allTimeXTicks = useMemo(() => {
     if (allTimeLineData.length === 0) return [];

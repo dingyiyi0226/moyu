@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNow } from "@/hooks/useNow";
 import { useAppStore, type BreakSession } from "@/store/appStore";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { formatFractionalHour, getDateKey, getWeekSunday, getIntervalsForDate } from "@/lib/timeUtils";
@@ -34,6 +35,7 @@ export function WeeklyChartSection({
   const pauseIntervals = useAppStore((s) => s.pauseIntervals);
   const schedule = useAppStore((s) => s.schedule);
   const dailySchedules = useAppStore((s) => s.dailySchedules);
+  const now = useNow();
   const [showLineChart, setShowLineChart] = useState(false);
 
   const bars = useMemo(
@@ -45,7 +47,6 @@ export function WeeklyChartSection({
     if (!showLineChart) return [];
 
     const sunday = getWeekSunday(weekOffset);
-    const now = new Date();
     const todayKey = getDateKey(now.getTime());
     const nowH = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
     const dailyAverages: { hour: number; percent: number }[][] = [];
@@ -88,7 +89,7 @@ export function WeeklyChartSection({
         label: formatFractionalHour(hour),
         percent: Math.round((total / count) * 10) / 10,
       }));
-  }, [showLineChart, weekOffset, allWorkIntervals, sessions, schedule, dailySchedules]);
+  }, [showLineChart, weekOffset, allWorkIntervals, sessions, schedule, dailySchedules, now]);
 
   const lineXTicks = useMemo(() => {
     if (!showLineChart || weeklyLineData.length === 0) return [];

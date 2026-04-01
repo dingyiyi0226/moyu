@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppStore } from "@/store/appStore";
 import { useNow } from "@/hooks/useNow";
 import { useCurrency } from "@/hooks/useCurrency";
@@ -62,7 +62,17 @@ export function DailyTab({
   );
 
   const now = useNow();
+  const prevNow = useRef(now);
   const isToday = selectedDate.toDateString() === now.toDateString();
+
+  useEffect(() => {
+    if (prevNow.current.toDateString() !== now.toDateString()) {
+      if (selectedDate.toDateString() === prevNow.current.toDateString()) {
+        setSelectedDate(today());
+      }
+      prevNow.current = now;
+    }
+  }, [now, selectedDate]);
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">

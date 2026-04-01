@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect, useCallback } from "react";
 import { useAppStore, type BreakSession, type PauseInterval, type WorkInterval } from "@/store/appStore";
 import { formatTimeSec, formatDuration, isSameDay } from "@/lib/timeUtils";
 import { useCurrency } from "@/hooks/useCurrency";
+import { useNow } from "@/hooks/useNow";
 import { LogIn, LogOut, Check, X, Presentation } from "lucide-react";
 import { TimeInput, type TimeFields } from "@/components/ui/time-input";
 
@@ -76,6 +77,7 @@ type CtxMenu =
   | null;
 
 export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: { todayOnly?: boolean; filterDate?: Date; filterWeekStart?: Date } = {}) {
+  const now = useNow();
   const allSessions = useAppStore((s) => s.sessions);
   const allWorkIntervals = useAppStore((s) => s.workIntervals);
   const allPauseIntervals = useAppStore((s) => s.pauseIntervals);
@@ -199,8 +201,7 @@ export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: 
   }
 
   const groupedByDay = useMemo((): DayGroup[] => {
-    const today = new Date();
-    const refDate = filterDate ?? (todayOnly ? today : null);
+    const refDate = filterDate ?? (todayOnly ? now : null);
 
     let sessions: BreakSession[];
     let workIntervals: WorkInterval[];
@@ -241,7 +242,7 @@ export function HistoryList({ todayOnly = false, filterDate, filterWeekStart }: 
         0,
       ),
     }));
-  }, [allSessions, allWorkIntervals, allPauseIntervals, todayOnly, filterDate, filterWeekStart]);
+  }, [allSessions, allWorkIntervals, allPauseIntervals, todayOnly, filterDate, filterWeekStart, now]);
 
   if (allSessions.length === 0 && allWorkIntervals.length === 0) {
     return (
