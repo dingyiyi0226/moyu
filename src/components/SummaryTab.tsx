@@ -211,7 +211,11 @@ export function SummaryTab() {
       }
     }
 
+    const totalDays = dailyAverages.length;
+    const minCount = Math.ceil(totalDays / 10);
+
     return Array.from(hourMap.entries())
+      .filter(([, { count }]) => count >= minCount)
       .sort(([a], [b]) => a - b)
       .map(([hour, { total, count }]) => ({
         hour,
